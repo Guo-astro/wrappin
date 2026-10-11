@@ -32,6 +32,8 @@ Use this checklist before packaging an IPA or declaring a development build stab
 - [ ] Tapping the map drops a pin with one non-duplicated address description.
 - [ ] Clear removes the selected pin/card state.
 - [ ] Done dismisses the keyboard without covering the location card.
+- [ ] Swiping down on the location card or tapping its handle collapses it; swiping up or tapping again expands it, and the state survives a relaunch. A swipe that starts on a button does not trigger that button.
+- [ ] While collapsed, the coordinate mode menu switches the mode, and pairing, connection, failure and restore messages and Stop & Restore remain visible.
 - [ ] The compass appears only when the map is rotated, tracks heading and returns north when tapped.
 - [ ] Current location returns smoothly to the real position and north-up.
 

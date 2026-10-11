@@ -645,6 +645,8 @@
 "Simulation coordinate mode" = "模拟坐标方式";
 "GCJ-02 correction" = "GCJ-02 校正";
 "WGS84 unchanged" = "WGS84 原样";
+"Expand location details" = "展开位置详情";
+"Collapse location details" = "收起位置详情";
 "For mainland China, try GCJ-02 first. If the position is off, switch to WGS84." = "中国大陆可先试 GCJ-02；位置有偏差就切换 WGS84。";
 "Outside mainland China, try WGS84 first. If the position is off, switch to GCJ-02." = "中国大陆以外可先试 WGS84；位置有偏差就切换 GCJ-02。";
 "WrapPin %@ is available." = "WrapPin %@ 已发布。";

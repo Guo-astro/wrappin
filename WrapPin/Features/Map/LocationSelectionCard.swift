@@ -4,6 +4,7 @@ import UIKit
 
 struct LocationSelectionCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let location: LocationTarget?
     let isFavourite: Bool
@@ -24,11 +25,18 @@ struct LocationSelectionCard: View {
     let onStart: () -> Void
     let onStop: () -> Void
 
+    @AppStorage("isLocationCardCollapsed") private var isCollapsed = false
+    @GestureState(resetTransaction: Transaction(animation: .spring(response: 0.4, dampingFraction: 0.8)))
+    private var dragOffset: CGFloat = 0
     @State private var didCopyCoordinates = false
     @State private var isConfirmingStop = false
 
     var body: some View {
-        Group {
+        VStack(spacing: 2) {
+            if location != nil {
+                collapseHandle
+            }
+
             if dynamicTypeSize.isAccessibilitySize {
                 ScrollView(.vertical, showsIndicators: false) {
                     cardContent
@@ -38,9 +46,14 @@ struct LocationSelectionCard: View {
                 cardContent
             }
         }
-        .padding(18)
+        .padding([.horizontal, .bottom], 18)
+        .padding(.top, location == nil ? 18 : 4)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: .black.opacity(0.15), radius: 18, y: 8)
+        .offset(y: dragOffset)
+        .sensoryFeedback(.selection, trigger: isCollapsed)
+        // The accessibility layout scrolls vertically, so it only collapses through the handle.
+        .highPriorityGesture(collapseDrag, isEnabled: location != nil && !dynamicTypeSize.isAccessibilitySize)
         .confirmationDialog(
             "Stop the simulated location and restore your real location?",
             isPresented: $isConfirmingStop,
@@ -58,7 +71,11 @@ struct LocationSelectionCard: View {
         VStack(alignment: .leading, spacing: 16) {
             if let location {
                 locationHeader(for: location)
-                coordinateModeSelection
+
+                if !isCollapsed {
+                    coordinateModeSelection
+                        .transition(detailTransition)
+                }
 
                 Button(action: primaryAction) {
                     HStack(spacing: 8) {
@@ -77,7 +94,7 @@ struct LocationSelectionCard: View {
                 .tint(isShowingActiveTarget ? .red : .blue)
                 .disabled(isPrimaryDisabled)
 
-                if canPreviewRoute {
+                if canPreviewRoute && !isCollapsed {
                     if dynamicTypeSize.isAccessibilitySize {
                         VStack(spacing: 8) {
                             routePreviewButton(for: .walking)
@@ -88,6 +105,7 @@ struct LocationSelectionCard: View {
                             routePreviewButton(for: .walking)
                             routePreviewButton(for: .driving)
                         }
+                        .transition(detailTransition)
                     }
                 }
 
@@ -108,11 +126,14 @@ struct LocationSelectionCard: View {
                         .frame(maxWidth: .infinity)
                 }
 
-                Text(statusMessage)
-                    .font(.caption)
-                    .foregroundStyle(isFailure ? .red : .secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .fixedSize(horizontal: false, vertical: true)
+                if !isCollapsed || !isRoutineStatus {
+                    Text(statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(isFailure ? .red : .secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .transition(.opacity)
+                }
 
                 if shouldOfferTunnelApp {
                     Link(destination: tunnelAppInstallURL) {
@@ -143,18 +164,89 @@ struct LocationSelectionCard: View {
         }
     }
 
+    private var collapseHandle: some View {
+        Button {
+            setCollapsed(!isCollapsed)
+        } label: {
+            Capsule()
+                .fill(.secondary.opacity(0.45))
+                .frame(width: 36, height: 5)
+                .frame(maxWidth: .infinity, minHeight: 24)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isCollapsed ? "Expand location details" : "Collapse location details")
+    }
+
+    private var collapseDrag: some Gesture {
+        DragGesture(minimumDistance: 20)
+            .updating($dragOffset) { value, offset, _ in
+                guard !reduceMotion else { return }
+                // Follows the finger with resistance; pulling the "wrong" way barely moves.
+                let vertical = value.translation.height
+                let leadsToChange = isCollapsed ? vertical < 0 : vertical > 0
+                let pull = vertical * (leadsToChange ? 0.35 : 0.12)
+                offset = min(max(pull, -28), 28)
+            }
+            .onEnded { value in
+                let vertical = value.translation.height
+                guard abs(vertical) > abs(value.translation.width), abs(vertical) > 40 else { return }
+                setCollapsed(vertical > 0)
+            }
+    }
+
+    private func setCollapsed(_ collapsed: Bool) {
+        guard collapsed != isCollapsed else { return }
+        withAnimation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.42, dampingFraction: 0.82)) {
+            isCollapsed = collapsed
+        }
+    }
+
+    // Details fade and settle from slightly below while the card resizes around them.
+    private var detailTransition: AnyTransition {
+        reduceMotion
+            ? .opacity
+            : .opacity.combined(with: .offset(y: 10)).combined(with: .scale(scale: 0.97, anchor: .top))
+    }
+
+    private var coordinateModeBinding: Binding<FixedCoordinateMode> {
+        Binding(
+            get: { coordinateMode },
+            set: { onCoordinateModeChange($0) }
+        )
+    }
+
+    // Keeps the active mode visible and switchable while the full selector is collapsed.
+    private var coordinateModeChip: some View {
+        Menu {
+            Picker("Simulation coordinate mode", selection: coordinateModeBinding) {
+                Text("GCJ-02 correction").tag(FixedCoordinateMode.gcj02)
+                Text("WGS84 unchanged").tag(FixedCoordinateMode.wgs84)
+            }
+        } label: {
+            HStack(spacing: 3) {
+                Text(verbatim: coordinateMode == .gcj02 ? "GCJ-02" : "WGS84")
+                Image(systemName: "chevron.up.chevron.down")
+                    .imageScale(.small)
+            }
+            .font(.caption.weight(.semibold))
+            .lineLimit(1)
+            .padding(.horizontal, 9)
+            .frame(minHeight: 30)
+            .background(.blue.opacity(0.12), in: Capsule())
+            .fixedSize()
+        }
+        .disabled(isWorking)
+        .accessibilityLabel("Simulation coordinate mode")
+        .accessibilityValue(coordinateMode == .gcj02 ? "GCJ-02" : "WGS84")
+    }
+
     private var coordinateModeSelection: some View {
         VStack(alignment: .leading, spacing: 7) {
             Text("Simulation coordinate mode")
                 .font(.subheadline.weight(.semibold))
 
-            Picker(
-                "Simulation coordinate mode",
-                selection: Binding(
-                    get: { coordinateMode },
-                    set: { onCoordinateModeChange($0) }
-                )
-            ) {
+            Picker("Simulation coordinate mode", selection: coordinateModeBinding) {
                 Text("GCJ-02 correction").tag(FixedCoordinateMode.gcj02)
                 Text("WGS84 unchanged").tag(FixedCoordinateMode.wgs84)
             }
@@ -236,25 +328,31 @@ struct LocationSelectionCard: View {
                     Text(locationDescription(for: location))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : (isCollapsed ? 1 : 2))
 
-                    Button {
-                        copyCoordinates(for: location)
-                    } label: {
-                        Label(
-                            didCopyCoordinates ? "Coordinates copied" : "Copy coordinates",
-                            systemImage: didCopyCoordinates ? "checkmark" : "doc.on.doc"
+                    if isCollapsed {
+                        coordinateModeChip
+                            .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                    } else {
+                        Button {
+                            copyCoordinates(for: location)
+                        } label: {
+                            Label(
+                                didCopyCoordinates ? "Coordinates copied" : "Copy coordinates",
+                                systemImage: didCopyCoordinates ? "checkmark" : "doc.on.doc"
+                            )
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(didCopyCoordinates ? .green : .blue)
+                                .lineLimit(1)
+                                .padding(.horizontal, 8)
+                                .frame(minHeight: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(
+                            didCopyCoordinates ? "Coordinates copied" : "Copy coordinates"
                         )
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(didCopyCoordinates ? .green : .blue)
-                            .lineLimit(1)
-                            .padding(.horizontal, 8)
-                            .frame(minHeight: 44)
+                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(
-                        didCopyCoordinates ? "Coordinates copied" : "Copy coordinates"
-                    )
                 }
             }
         }
@@ -340,6 +438,18 @@ struct LocationSelectionCard: View {
     private var isFailure: Bool {
         if case .failed = sessionPhase { return true }
         return false
+    }
+
+    // Status copy that only repeats what the buttons already say; hidden while collapsed.
+    private var isRoutineStatus: Bool {
+        switch sessionPhase {
+        case .idle:
+            isPaired
+        case .active:
+            isShowingActiveTarget
+        case .openingLocalDevVPN, .discovering, .connecting, .stopping, .failed:
+            false
+        }
     }
 
     private var shouldOfferTunnelApp: Bool {

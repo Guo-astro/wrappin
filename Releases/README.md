@@ -2,9 +2,22 @@
 
 ## Active distribution tracks
 
-- Public release: `v1.0.16` Build 52, with both editions attached to the same GitHub Release.
-- Standard edition (SideStore and other self-signing): `WrapPin-Standard-1.0.16-build52-unsigned.ipa`, bundle ID `com.suversal.wrappin`.
-- Tunnel edition (signing profiles with Packet Tunnel permission): `WrapPin-Tunnel-1.0.16-build52-unsigned.ipa`, bundle ID `com.suversal.wrappin.selfsigned`, extension `com.suversal.wrappin.selfsigned.tunnel`.
+- Public release: `v1.0.17` Build 55, with both editions attached to the same GitHub Release.
+- Standard edition (SideStore and other self-signing): `WrapPin-Standard-1.0.17-build55-unsigned.ipa`, bundle ID `com.suversal.wrappin`.
+- Tunnel edition (signing profiles with Packet Tunnel permission): `WrapPin-Tunnel-1.0.17-build55-unsigned.ipa`, bundle ID `com.suversal.wrappin.selfsigned`, extension `com.suversal.wrappin.selfsigned.tunnel`.
+
+## 1.0.17 (Build 55)
+
+- Created: 11 October 2026 with Xcode 27.0 (`27A266a`) using `scripts/package-ipa.sh all`
+- Standard IPA: `WrapPin-Standard-1.0.17-build55-unsigned.ipa`; SHA-256 `2a2bd8fb1c6462c11baff0bc7e42a7a7d1b02650ab5a1b9a3ac5acc2b718741f`; no Packet Tunnel extension.
+- Tunnel IPA: `WrapPin-Tunnel-1.0.17-build55-unsigned.ipa`; SHA-256 `a0c91e2a215165cc86ff0689d246752db9b974453e6ca7adbd682fa662bdf94f`; contains `WrapPinTunnel.appex`.
+- Both: optimized unsigned Release Archive, arm64 iPhone, iOS 27+. No TelemetryDeck identifiers were configured for this build, so it sends no usage statistics.
+- Changes: the selected-location card can be collapsed by swiping down or tapping its handle, and the choice is remembered; while collapsed, the coordinate mode is a small menu and the selector hint, copy button, route preview buttons and routine status line are hidden. No native engine change from Build 52.
+- Verification: localization, failure-stage, background-session, coordinate-mode, route-recovery, tunnel-handoff and route-selection checks, both Release archives, IPA ZIP integrity, identifiers, versions and extension presence or absence passed. Native engine tests were not rerun because the engine is unchanged. The maintainer tried collapsing and expanding on a physical iPhone with local test Builds 53 and 54, without recording individual cases; Build 55 has the same feature code as Build 54 and has not itself been installed on a device.
+- Known issues: at accessibility text sizes the card collapses through its handle only; the route preview card cannot be collapsed; the mobile-data limitation of Shadowrocket, Surge and Loon from 1.0.16 is unchanged. Each archive printed `error: the following command failed with exit code 0 but produced no further output` for a SwiftCompile step and then completed; its cause was not investigated. Builds 53 and 54 were local test builds and were not published.
+- Publication: GitHub Release `v1.0.17`.
+
+See [the 1.0.17 build notes](../Documentation/Release-1.0.17.md) for details.
 
 ## 1.0.16 (Build 52)
 

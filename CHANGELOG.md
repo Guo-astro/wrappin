@@ -2,6 +2,22 @@
 
 All notable public changes to WrapPin are recorded here.
 
+## [1.0.17] - 2026-10-11
+
+### Improved
+
+- The selected-location card on the map can be collapsed to leave more of the map free for choosing a point ([#29](https://github.com/suversal/WrapPin/issues/29)). Swipe down on the card or tap its handle to collapse it; swipe up or tap the handle again to expand it. WrapPin remembers the choice.
+- While collapsed, the card keeps the place, the favourite and clear buttons and the main button, and shows the simulation coordinate mode as a small menu so it can still be switched. The mode selector with its hint, **Copy coordinates**, the route preview buttons and the routine status line are hidden until the card is expanded. Pairing, connection, failure and restore messages always stay visible.
+
+### Known limitations
+
+- At accessibility text sizes the card scrolls, so it collapses through the handle only, not by swiping.
+- The route preview card cannot be collapsed.
+
+### Tested
+
+- The maintainer tried the collapse and expand behaviour on a physical iPhone with local test Builds 53 and 54; the individual cases were not recorded. Build 55 has the same feature code as Build 54 and has not itself been installed on a device.
+
 ## [1.0.16] - 2026-10-10
 
 ### Added

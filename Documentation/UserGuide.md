@@ -28,6 +28,8 @@ Use any of these methods:
 
 Choosing a search result clears the search box automatically. The close button on a selected-location card clears a dropped pin or selection. The copy button copies the readable place and address.
 
+To see more of the map, swipe down on the selected-location card or tap the handle at its top to collapse it; swipe up or tap the handle again to expand it. WrapPin remembers the choice. While collapsed, the card shows the simulation coordinate mode as a small menu next to the address, and the route preview and copy buttons are hidden.
+
 ## Start a fixed location
 
 1. Choose the location.
