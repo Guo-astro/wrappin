@@ -68,6 +68,6 @@ checks += [
 with tempfile.TemporaryDirectory() as temp:
     source = Path(temp) / 'main.swift'
     source.write_text(enums + '\n' + '\n'.join(checks) + '\nprint("Failure-stage checks passed")\n')
-    subprocess.run(['xcrun', 'swiftc', '-module-cache-path', str(Path(temp) / 'cache'), str(source), '-o', str(Path(temp) / 'check')], check=True)
+    subprocess.run(['xcrun', 'swiftc', '-module-cache-path', str(Path(temp) / 'cache'), str(source), str(root / 'WrapPin/Services/FailureStage.swift'), '-o', str(Path(temp) / 'check')], check=True)
     subprocess.run([str(Path(temp) / 'check')], check=True)
 print(f'Covered {len(stages)} native stage codes across {len(errors)} location errors and {len(pairing_messages)} pairing messages; no network requests made.')

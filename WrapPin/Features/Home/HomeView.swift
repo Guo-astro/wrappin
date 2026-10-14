@@ -17,6 +17,7 @@ struct HomeView: View {
     @State private var isLocatingRealLocationAfterRestoration = false
     @State private var visibleMapCamera: MapCamera?
     @State private var isPreparingRecoveredWalk = false
+    @State private var recoveredWalkPreparationIdentifier: UUID?
     @State private var recoveredWalkError: String?
     @State private var followsSimulatedLocation = false
     @State private var fixedCoordinateMode: FixedCoordinateMode = .wgs84
@@ -234,6 +235,21 @@ struct HomeView: View {
                     }
 
                     Spacer()
+
+                    if case .active = appModel.deviceSession.phase,
+                       !appModel.deviceSession.backgroundKeepAlive.started,
+                       appModel.deviceSession.backgroundKeepAlive.status != .awaitingAuthorization {
+                        Label(
+                            "The current simulation can still work in the foreground, but background continuity is unavailable. Check Location access for WrapPin in Settings.",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(14)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .accessibilityElement(children: .combine)
+                    }
 
                     HStack {
                     Spacer()
@@ -478,7 +494,7 @@ struct HomeView: View {
                     SessionRecoveryView(
                         recovery: recovery,
                         isPaired: isPaired,
-                        isResuming: isPreparingRecoveredWalk,
+                        isResuming: isPreparingRecoveredWalk || appModel.isStartingLocationSession,
                         isRestoring: appModel.isRestoringInterruptedSession,
                         errorMessage: recoveredWalkError ?? appModel.interruptedSessionError,
                         onResume: {
@@ -496,6 +512,12 @@ struct HomeView: View {
                         onCancel: {
                             if appModel.isRestoringInterruptedSession {
                                 appModel.cancelInterruptedSessionRestoration()
+                            } else if appModel.isStartingLocationSession {
+                                appModel.stopLocationSession()
+                            } else if isPreparingRecoveredWalk {
+                                recoveredWalkPreparationIdentifier = nil
+                                isPreparingRecoveredWalk = false
+                                walkingRoutePlanner.clear()
                             }
                         }
                     )
@@ -756,7 +778,6 @@ struct HomeView: View {
         recoveredWalkError = nil
 
         guard recovery.isRoute, let destination = recovery.destination else {
-            appModel.dismissInterruptedSessionRecovery()
             mapModel.show(recovery.lastReportedLocation)
             let mode = recovery.fixedCoordinateMode
                 ?? FixedCoordinateMode.recommended(for: recovery.lastReportedLocation)
@@ -774,6 +795,8 @@ struct HomeView: View {
             ?? FixedCoordinateMode.recommended(for: destination)
         fixedCoordinateMode = routeCoordinateMode
         isPreparingRecoveredWalk = true
+        let preparationIdentifier = UUID()
+        recoveredWalkPreparationIdentifier = preparationIdentifier
         Task { @MainActor in
             // A resumed route starts straight away, so there is nothing to choose between.
             let route = await walkingRoutePlanner.preview(
@@ -782,6 +805,8 @@ struct HomeView: View {
                 mode: recovery.routeMode,
                 includingAlternatives: false
             )
+            guard recoveredWalkPreparationIdentifier == preparationIdentifier else { return }
+            recoveredWalkPreparationIdentifier = nil
             guard let route else {
                 recoveredWalkError = walkingRoutePlanner.errorMessage
                     ?? String(localized: "The remaining route could not be prepared.")
@@ -789,7 +814,6 @@ struct HomeView: View {
                 return
             }
 
-            appModel.dismissInterruptedSessionRecovery()
             walkingSimulation.prepare(
                 route: route,
                 destination: destination,
@@ -820,6 +844,7 @@ struct HomeView: View {
     private func dismissInterruptedSessionRecovery() {
         recoveredWalkError = nil
         isPreparingRecoveredWalk = false
+        recoveredWalkPreparationIdentifier = nil
         walkingSimulation.reset()
         walkingRoutePlanner.clear()
         appModel.dismissInterruptedSessionRecovery()

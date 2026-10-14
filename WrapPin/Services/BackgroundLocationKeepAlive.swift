@@ -39,25 +39,80 @@ enum BackgroundKeepAliveStatus: String, Sendable {
 final class BackgroundLocationKeepAlive: NSObject, @preconcurrency CLLocationManagerDelegate {
     private(set) var status: BackgroundKeepAliveStatus = .idle
     private(set) var started = false
+    private(set) var reducesBackgroundLocationIndicator = false
+    private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
+    private(set) var showsBackgroundLocationIndicator = true
+
+    var isBackgroundIndicatorHidden: Bool { !showsBackgroundLocationIndicator }
+
+    var authorizationTitle: String {
+        switch authorizationStatus {
+        case .notDetermined: String(localized: "Not requested")
+        case .authorizedWhenInUse: String(localized: "While Using the App")
+        case .authorizedAlways: String(localized: "Always")
+        case .denied: String(localized: "Denied")
+        case .restricted: String(localized: "Restricted")
+        @unknown default: String(localized: "Unknown")
+        }
+    }
 
     private let manager: CLLocationManager
     private var requested = false
     private let hasBackgroundMode: Bool
+    // In-memory intent for the When In Use -> Always flow started by the toggle.
+    // It is never restored from preferences or created by session startup.
+    private var pendingAlwaysAuthorizationUpgrade = false
 
     init(
         manager: CLLocationManager = CLLocationManager(),
         hasBackgroundMode: Bool = (Bundle.main.object(
             forInfoDictionaryKey: "UIBackgroundModes"
-        ) as? [String])?.contains("location") == true
+        ) as? [String])?.contains("location") == true,
+        reducesBackgroundLocationIndicator: Bool = false
     ) {
         self.manager = manager
         self.hasBackgroundMode = hasBackgroundMode
+        self.reducesBackgroundLocationIndicator = reducesBackgroundLocationIndicator
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyKilometer
         manager.distanceFilter = kCLDistanceFilterNone
         manager.pausesLocationUpdatesAutomatically = false
-        manager.showsBackgroundLocationIndicator = true
+        applyIndicatorPreference()
+    }
+
+    /// Loads a stored choice without requesting either form of authorization.
+    func restoreIndicatorPreference(_ enabled: Bool) {
+        reducesBackgroundLocationIndicator = enabled
+        pendingAlwaysAuthorizationUpgrade = false
+        applyIndicatorPreference()
+    }
+
+    /// Only a new, explicit off -> on toggle may request an authorization upgrade.
+    func setIndicatorPreferenceFromUserAction(_ enabled: Bool) {
+        guard enabled != reducesBackgroundLocationIndicator else { return }
+        reducesBackgroundLocationIndicator = enabled
+        pendingAlwaysAuthorizationUpgrade = false
+        applyIndicatorPreference()
+        guard enabled else { return }
+
+        switch manager.authorizationStatus {
+        case .notDetermined:
+            pendingAlwaysAuthorizationUpgrade = true
+            manager.requestWhenInUseAuthorization()
+        case .authorizedWhenInUse:
+            manager.requestAlwaysAuthorization()
+        default:
+            // Denied/restricted access requires Settings. Always is already granted.
+            break
+        }
+    }
+
+    private func applyIndicatorPreference() {
+        authorizationStatus = manager.authorizationStatus
+        showsBackgroundLocationIndicator = !(reducesBackgroundLocationIndicator
+            && authorizationStatus == .authorizedAlways)
+        manager.showsBackgroundLocationIndicator = showsBackgroundLocationIndicator
     }
 
     func start() {
@@ -75,6 +130,12 @@ final class BackgroundLocationKeepAlive: NSObject, @preconcurrency CLLocationMan
         started = false
     }
 
+    /// Recheck an already requested keep-alive on foreground activation.
+    /// This never starts or reconnects a developer location session.
+    func reconcile() {
+        reconcileAuthorization()
+    }
+
     private func unavailable(_ status: BackgroundKeepAliveStatus) {
         manager.stopUpdatingLocation()
         manager.allowsBackgroundLocationUpdates = false
@@ -83,12 +144,12 @@ final class BackgroundLocationKeepAlive: NSObject, @preconcurrency CLLocationMan
     }
 
     private func reconcileAuthorization() {
+        applyIndicatorPreference()
         guard requested else { return }
         guard hasBackgroundMode else {
             unavailable(.missingBackgroundMode)
             return
         }
-
         switch manager.authorizationStatus {
         case .notDetermined:
             status = .awaitingAuthorization
@@ -110,6 +171,17 @@ final class BackgroundLocationKeepAlive: NSObject, @preconcurrency CLLocationMan
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        if pendingAlwaysAuthorizationUpgrade, reducesBackgroundLocationIndicator {
+            switch manager.authorizationStatus {
+            case .authorizedWhenInUse:
+                pendingAlwaysAuthorizationUpgrade = false
+                manager.requestAlwaysAuthorization()
+            case .notDetermined:
+                break
+            default:
+                pendingAlwaysAuthorizationUpgrade = false
+            }
+        }
         reconcileAuthorization()
     }
 
@@ -120,12 +192,12 @@ final class BackgroundLocationKeepAlive: NSObject, @preconcurrency CLLocationMan
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         guard requested else { return }
-        if (error as? CLError)?.code == .locationUnknown {
-            status = .locationUnavailable
-        } else if (error as? CLError)?.code == .denied {
+        if (error as? CLError)?.code == .denied {
             unavailable(CLLocationManager.locationServicesEnabled() ? .denied : .servicesDisabled)
         } else {
-            unavailable(.failed)
+            // Core Location may resume delivery after a transient error.
+            // Keep the update request and background permission in place.
+            status = .locationUnavailable
         }
     }
 }

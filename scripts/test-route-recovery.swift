@@ -45,6 +45,16 @@ struct RouteRecoveryCheck {
         precondition(restored.kind == .drivingRoute && restored.routeMode == .driving)
         precondition(restored.fixedCoordinateMode == .wgs84)
         precondition(abs((restored.savedRouteSpeed ?? 0) * 3.6 - 100) < 0.0001)
-        print("Route recovery: legacy walking, custom walking and driving records passed")
+        var progressed = driving
+        progressed.lastReportedLocation = LocationTarget(name: "Mid-route")
+        progressed.updatedAt = Date(timeIntervalSinceReferenceDate: 321)
+        let savedProgress = try decoder.decode(
+            SessionRecoveryRecord.self, from: JSONEncoder().encode(progressed)
+        )
+        precondition(savedProgress == progressed)
+        precondition(savedProgress.destination == driving.destination)
+        precondition(savedProgress.startedAt == driving.startedAt)
+        precondition(savedProgress.lastReportedLocation.name == "Mid-route")
+        print("Route recovery: legacy walking, custom walking, driving and latest route progress passed")
     }
 }

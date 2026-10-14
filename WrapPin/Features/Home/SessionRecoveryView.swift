@@ -82,6 +82,12 @@ struct SessionRecoveryView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
+
+                Text("This is the last location you set, not confirmation that it is still active.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             VStack(spacing: 10) {
@@ -116,13 +122,16 @@ struct SessionRecoveryView: View {
                     Text(
                         isRestoring
                             ? String(localized: "Restoring this iPhone's real location…")
-                            : String(localized: "Preparing the route…")
+                            : String(localized: "Resuming the previous session…")
                     )
                         .font(.subheadline.weight(.semibold))
                 }
                 .frame(maxWidth: .infinity)
 
-                Button("Cancel Restoration", role: .cancel, action: onCancel)
+                Button(
+                    isRestoring ? String(localized: "Cancel Restoration") : String(localized: "Cancel"),
+                    role: .cancel, action: onCancel
+                )
                     .foregroundStyle(.secondary)
             } else {
                 Button(action: onResume) {

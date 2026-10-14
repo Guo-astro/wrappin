@@ -134,6 +134,7 @@ final class LocalDeviceSessionCoordinator: NSObject {
     private var vpnReturnRetryTask: Task<Void, Never>?
 
     private(set) var restorationStatus = String(localized: "Not requested")
+    private(set) var didConfirmLocationClear = false
     private(set) var schedulerFailureReason: SchedulerFailureReason?
     private(set) var lastFailureStage: FailureStage?
     private(set) var lastFailureDisposition: FailureDisposition?
@@ -224,6 +225,7 @@ final class LocalDeviceSessionCoordinator: NSObject {
         lastFailureStage = nil
         lastFailureDisposition = nil
         restorationStatus = String(localized: "Not requested")
+        didConfirmLocationClear = false
         vpnReturnRetryUsed = false
 
 #if targetEnvironment(simulator)
@@ -702,14 +704,27 @@ final class LocalDeviceSessionCoordinator: NSObject {
         activeSession = nil
         workerIsRunning = false
         backgroundKeepAlive.stop()
+        if case .success = outcome {
+            didConfirmLocationClear = true
+        }
 
         if let pendingFailureMessage {
             self.pendingFailureMessage = nil
             mobileDataGuidance = nil
             clearPendingSession()
+            let needsClearConfirmationNotification = didConfirmLocationClear
+                && (phase == .failed(pendingFailureMessage) || terminalFailureReported)
             phase = .failed(pendingFailureMessage)
             connectionStage = .failed
             lastFailureMessage = pendingFailureMessage
+            if didConfirmLocationClear {
+                restorationStatus = String(localized: "Stop command acknowledged; real location reacquisition unverified")
+            }
+            // Swift already reported this failure. A later successful native clear
+            // must still reach AppModel even when the phase/message is unchanged.
+            if needsClearConfirmationNotification {
+                onPhaseChange?(phase)
+            }
             return
         }
 

@@ -750,17 +750,15 @@ async fn run_location_session(
     )
     .await?;
 
-    // From the first write onwards the session must reach `clear`, so a stop
-    // request is only observed between writes, never in the middle of one.
-    location
-        .set(applied_coordinates.latitude, applied_coordinates.longitude)
-        .await
-        .map_err(|_| {
-            LocationError::new(
-                Stage::LocationInitialWrite,
-                "The iPhone did not accept the selected location.",
-            )
-        })?;
+    // Observe stop requests between writes, never by cancelling a write midway.
+    // A timed-out write may leave an unread response: discard the channel and
+    // preserve recovery in Swift rather than issuing `clear` on that channel.
+    await_location_write(
+        location.set(applied_coordinates.latitude, applied_coordinates.longitude),
+        SESSION_TIMEOUT,
+        Stage::LocationInitialWrite,
+    )
+    .await?;
     if let Some(callback) = started_callback {
         callback(callback_context as *mut c_void);
     }
@@ -775,15 +773,12 @@ async fn run_location_session(
         if latest_coordinates != applied_coordinates
             || last_refresh.elapsed() >= Duration::from_secs(4)
         {
-            location
-                .set(latest_coordinates.latitude, latest_coordinates.longitude)
-                .await
-                .map_err(|_| {
-                    LocationError::new(
-                        Stage::LocationActiveWrite,
-                        "The iPhone ended the active location session.",
-                    )
-                })?;
+            await_location_write(
+                location.set(latest_coordinates.latitude, latest_coordinates.longitude),
+                SESSION_TIMEOUT,
+                Stage::LocationActiveWrite,
+            )
+            .await?;
             applied_coordinates = latest_coordinates;
             last_refresh = Instant::now();
         }
@@ -807,6 +802,39 @@ async fn connection_step<T, E>(
         }
         _ = wait_for_cancellation(Arc::clone(cancellation)) => Err(LocationError::cancelled()),
     }
+}
+
+async fn await_location_write<E>(
+    operation: impl std::future::Future<Output = Result<(), E>>,
+    deadline: Duration,
+    stage: LocationStage,
+) -> Result<(), LocationError> {
+    let (timed_out, failed) = match stage {
+        LocationStage::LocationInitialWrite => (
+            LocationError::new(
+                LocationStage::LocationInitialWrite,
+                "The iPhone did not confirm the selected location in time.",
+            ),
+            LocationError::new(
+                LocationStage::LocationInitialWrite,
+                "The iPhone did not accept the selected location.",
+            ),
+        ),
+        _ => (
+            LocationError::new(
+                LocationStage::LocationActiveWrite,
+                "The iPhone did not confirm updating the location in time.",
+            ),
+            LocationError::new(
+                LocationStage::LocationActiveWrite,
+                "The iPhone ended the active location session.",
+            ),
+        ),
+    };
+    timeout(deadline, operation)
+        .await
+        .map_err(|_| timed_out)?
+        .map_err(|_| failed)
 }
 
 async fn await_location_clear<E>(
@@ -960,22 +988,87 @@ unsafe fn destroy_byte_buffer(pointer: *mut u8, length: usize) {
 }
 
 #[cfg(test)]
+mod location_write_tests {
+    use super::*;
+
+    #[tokio::test(start_paused = true)]
+    async fn initial_write_has_a_deadline() {
+        let error = await_location_write(
+            std::future::pending::<Result<(), ()>>(),
+            SESSION_TIMEOUT,
+            LocationStage::LocationInitialWrite,
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.stage, LocationStage::LocationInitialWrite);
+        assert_eq!(
+            error.message,
+            "The iPhone did not confirm the selected location in time."
+        );
+        assert!(!error.recoverable);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn active_write_has_a_deadline() {
+        let error = await_location_write(
+            std::future::pending::<Result<(), ()>>(),
+            SESSION_TIMEOUT,
+            LocationStage::LocationActiveWrite,
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.stage, LocationStage::LocationActiveWrite);
+        assert_eq!(
+            error.message,
+            "The iPhone did not confirm updating the location in time."
+        );
+        assert!(!error.recoverable);
+    }
+
+    #[tokio::test]
+    async fn write_success_and_errors_keep_the_original_stage() {
+        for stage in [
+            LocationStage::LocationInitialWrite,
+            LocationStage::LocationActiveWrite,
+        ] {
+            assert!(
+                await_location_write(std::future::ready(Ok::<(), ()>(())), SESSION_TIMEOUT, stage)
+                    .await
+                    .is_ok()
+            );
+            let error = await_location_write(
+                std::future::ready(Err::<(), ()>(())),
+                SESSION_TIMEOUT,
+                stage,
+            )
+            .await
+            .unwrap_err();
+            assert_eq!(error.stage, stage);
+        }
+    }
+}
+
+#[cfg(test)]
 mod restoration_tests {
     use super::*;
 
     #[tokio::test]
     async fn clear_success_is_acknowledged() {
-        let cleared =
-            await_location_clear(std::future::ready(Ok::<(), ()>(())), Duration::from_millis(10));
+        let cleared = await_location_clear(
+            std::future::ready(Ok::<(), ()>(())),
+            Duration::from_millis(10),
+        );
         assert!(cleared.await.is_ok());
     }
 
     #[tokio::test]
     async fn clear_error_is_not_success() {
-        let error =
-            await_location_clear(std::future::ready(Err::<(), ()>(())), Duration::from_millis(10))
-                .await
-                .unwrap_err();
+        let error = await_location_clear(
+            std::future::ready(Err::<(), ()>(())),
+            Duration::from_millis(10),
+        )
+        .await
+        .unwrap_err();
         assert_eq!(error.stage, LocationStage::LocationRestore);
         assert_eq!(
             error.message,
@@ -1004,7 +1097,8 @@ mod connection_step_tests {
     use super::*;
 
     const TIMED_OUT: LocationError = LocationError::new(LocationStage::TunnelCreation, "timed out");
-    const FAILED: LocationError = LocationError::recoverable(LocationStage::TunnelConnection, "failed");
+    const FAILED: LocationError =
+        LocationError::recoverable(LocationStage::TunnelConnection, "failed");
 
     #[tokio::test]
     async fn success_passes_the_value_through() {

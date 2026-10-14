@@ -1,4 +1,6 @@
+import CoreLocation
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     private static let repositoryURL = URL(
@@ -17,6 +19,7 @@ struct SettingsView: View {
     @Environment(AppModel.self) private var appModel
     @Environment(ReleaseUpdateModel.self) private var releaseUpdates
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var xLogoSize: CGFloat = 25
     @State private var isShowingDeviceSetup = false
@@ -94,18 +97,24 @@ struct SettingsView: View {
                         }
                         .accessibilityHint("Selects the app to open when WrapPin cannot reach the paired iPhone.")
                     } footer: {
-                        switch appModel.tunnelHandoffApp {
-                        case .localDevVPN:
-                            Text("On Wi-Fi, WrapPin opens LocalDevVPN if the paired iPhone is unreachable. On mobile data, it uses LocalDevVPN's connect-and-return flow before continuing. If it does not return automatically, check its tunnel and come back to WrapPin.")
-                        case .shadowrocket:
-                            Text("WrapPin asks Shadowrocket to connect its VPN only when it cannot find the paired iPhone's device connection. Shadowrocket requires Include Route 10.7.0.1/32 turned on in its Settings. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Shadowrocket's VPN switch.")
-                        case .surge:
-                            Text("WrapPin asks Surge to start its selected configuration only when it cannot find the paired iPhone's device connection. Surge 5.23+ requires 10.7.0.1/32 in tun-included-routes and 10.7.0.1 = reflect in IP Rewrite. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Surge's VPN switch.")
-                        case .loon:
-                            Text("WrapPin asks Loon to turn on its VPN only when it cannot find the paired iPhone's device connection. Loon build 1007+ requires include-tun = 10.7.0.1/32 and an enabled plugin with 10.7.0.1 = reflect in IP Rewrite. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Loon's VPN switch.")
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("This setting chooses which app WrapPin opens for tunnel setup; it does not limit which apps are compatible. Other VPN or proxy apps can also be used if they provide a correctly configured device tunnel. Enable their tunnel manually first.")
+
+                            switch appModel.tunnelHandoffApp {
+                            case .localDevVPN:
+                                Text("On Wi-Fi, WrapPin opens LocalDevVPN if the paired iPhone is unreachable. On mobile data, it uses LocalDevVPN's connect-and-return flow before continuing. If it does not return automatically, check its tunnel and come back to WrapPin.")
+                            case .shadowrocket:
+                                Text("WrapPin asks Shadowrocket to connect its VPN only when it cannot find the paired iPhone's device connection. Shadowrocket requires Include Route 10.7.0.1/32 turned on in its Settings. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Shadowrocket's VPN switch.")
+                            case .surge:
+                                Text("WrapPin asks Surge to start its selected configuration only when it cannot find the paired iPhone's device connection. Surge 5.23+ requires 10.7.0.1/32 in tun-included-routes and 10.7.0.1 = reflect in IP Rewrite. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Surge's VPN switch.")
+                            case .loon:
+                                Text("WrapPin asks Loon to turn on its VPN only when it cannot find the paired iPhone's device connection. Loon build 1007+ requires include-tun = 10.7.0.1/32 and an enabled plugin with 10.7.0.1 = reflect in IP Rewrite. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Loon's VPN switch.")
+                            }
                         }
                     }
                 }
+
+                backgroundIndicatorSection
 
                 Section {
                     Toggle(isOn: anonymousUsageStatisticsBinding) {
@@ -123,7 +132,7 @@ struct SettingsView: View {
                     Text("Optional and off by default. Helps estimate activity from participating installations. Locations, searches and pairing data are never included.")
                 }
 
-                Section("About") {
+                Section {
                     NavigationLink {
                         AboutWrapPinView()
                     } label: {
@@ -152,6 +161,10 @@ struct SettingsView: View {
                         settingsRowLabel("Replay Introduction", symbol: "sparkles")
                     }
                     .foregroundStyle(.primary)
+                } header: {
+                    Text("About")
+                } footer: {
+                    Text("WrapPin is based on earlier [Roam Control](https://github.com/seanhowarthdev/Roam-Control) source releases by Sean Howarth. Thank you for sharing the original project.")
                 }
 
                 Section {
@@ -389,6 +402,44 @@ struct SettingsView: View {
             get: { appModel.sharesAnonymousUsageStatistics },
             set: appModel.setSharesAnonymousUsageStatistics
         )
+    }
+
+    private var backgroundIndicatorSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { appModel.reducesBackgroundLocationIndicator },
+                set: appModel.setReducesBackgroundLocationIndicator
+            )) {
+                settingsRowLabel("Reduce Background Location Indicator", symbol: "location")
+            }
+
+            LabeledContent("Location Authorization", value: appModel.deviceSession.backgroundKeepAlive.authorizationTitle)
+
+            if appModel.reducesBackgroundLocationIndicator,
+               appModel.deviceSession.backgroundKeepAlive.authorizationStatus != .authorizedAlways {
+                Text("Always access has not been granted. If the upgrade prompt does not appear or you previously declined it, open iOS Settings and choose Always. The indicator remains visible until access is granted.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if appModel.reducesBackgroundLocationIndicator
+                || appModel.deviceSession.backgroundKeepAlive.authorizationStatus == .authorizedAlways {
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        openURL(url)
+                    }
+                } label: {
+                    settingsRowLabel("Open iOS Settings", symbol: "gear")
+                }
+            }
+        } header: {
+            Text("Background Location Indicator")
+        } footer: {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Optional and off by default. Enabling requires Always location access to hide the blue location indicator while keeping a simulation active in the background. iOS may periodically remind you that WrapPin uses location in the background. Coordinates received for background keep-alive are never saved or uploaded.")
+                Text("Turning this off restores the indicator but cannot revoke Always access. You can change access back to While Using the App in iOS Settings.")
+            }
+        }
     }
 
     private var versionText: String {

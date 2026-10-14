@@ -56,7 +56,20 @@ Use this checklist before packaging an IPA or declaring a development build stab
 - [ ] The first active session requests Location access and Connection Health reports the background-session state accurately.
 - [ ] With Location access denied, foreground simulation still starts and Connection Health explains that background continuity is unavailable.
 - [ ] Stop & Restore requires confirmation, then restores the real location.
-- [ ] The blue background-location indicator appears only while a simulation is active and disappears after Stop & Restore.
+- [ ] With Reduce Background Location Indicator off, the blue background-location indicator appears only while a simulation is active and disappears after Stop & Restore.
+
+### Reduce Background Location Indicator (optional; physical device required)
+
+- [ ] A clean install has the option off. It preserves the existing While Using the App request and indicator behavior, including when Always access is already granted.
+- [ ] With no location authorization, explicitly enabling first requests While Using the App and then requests an Always upgrade. Test Allow Once separately: when the upgrade is unavailable, the explanation and Open iOS Settings entry remain usable.
+- [ ] With While Using the App access, only explicitly enabling the option requests Always. Relaunching with a saved enabled choice, starting a session and returning to the foreground never request the upgrade.
+- [ ] Decline the Always upgrade or use an installation where iOS no longer offers it: the option stays on, the indicator stays visible, and the explanation links to system settings.
+- [ ] Grant Always in system settings and return; Connection Health shows the new authorization and Hide While Active. Downgrade to While Using the App and return; it shows Show While Active without requesting another upgrade.
+- [ ] On iOS 27 with the option on and Always granted, check whether the blue Dynamic Island indicator actually disappears during simulation. The diagnostic value reports requested behavior, not proof of system UI appearance.
+- [ ] Switch the option on/off during a session: indicator behavior updates without restarting simulation. Turning it off does not revoke Always; changing permission in system settings works.
+- [ ] Compare locked-screen and extended background sessions with the option on/off for fixed, walking and driving simulation. Hiding the indicator must not worsen continuity; no auto-reconnection is promised.
+- [ ] Stop & Restore ends location updates and the indicator disappears with both preference states. Verify real-location restoration in Apple Maps and another app.
+- [ ] The explanation mentions periodic iOS reminders and that background keep-alive coordinates are not saved or uploaded. No new statistics event or location field is sent.
 
 ### Tunnel app handoff (new branch; physical device required)
 
@@ -100,6 +113,14 @@ Use this checklist before packaging an IPA or declaring a development build stab
 - [ ] Stop & Restore requires confirmation and restores the real location.
 
 ## Recovery
+
+- [ ] Disconnect the device tunnel during fixed, walking and driving sessions: a failed write offers recovery in the current run and preserves the latest route point, mode and speed after relaunch.
+- [ ] Retry recovery with the tunnel unavailable, and separately select a different place and fail to connect: the previous unconfirmed record remains available.
+- [ ] With an unresponsive device, pending coordinate writes and clearing each expire after 15 seconds while WrapPin can execute. Stop never waits indefinitely; a write that finishes near its deadline followed by a clear timeout may take about 30 seconds in total.
+- [ ] A stop without clear acknowledgement offers recovery; test Resume and Restore Real Location separately after reconnecting the device tunnel, and verify the result in Apple Maps and another app.
+- [ ] Cancel a startup before its first write while an older recovery record exists: keep that record. A confirmed clear, a new active session, or explicit dismissal removes or replaces it.
+- [ ] Deny Location access during an active session, return to WrapPin and see the home-screen background warning. Restore access and return: keep-alive reconciles without reconnecting the simulation session.
+- [ ] Swiping away the app ends the simulation connection; a still-connected VPN must not be presented as proof that simulation continues.
 
 - [ ] Force-closing during a fixed session shows interrupted-session recovery on relaunch.
 - [ ] Resume Location reconnects to the saved location.

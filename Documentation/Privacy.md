@@ -1,5 +1,7 @@
 # WrapPin Privacy
 
+[简体中文](Privacy.zh-CN.md)
+
 WrapPin is designed to keep sensitive location and pairing information on the iPhone.
 
 ## Information that stays on the iPhone
@@ -16,6 +18,16 @@ WrapPin does not send:
 Pairing records are stored in the device-only Keychain. App preferences and saved places remain in local app storage.
 
 When the app opens, it requests the latest public release metadata from GitHub to check for an update. The request does not include location, pairing or diagnostic data. As with any network request, GitHub can observe connection metadata such as the requesting IP address.
+
+## Optional background location indicator preference
+
+**Settings → Background Location Indicator → Reduce Background Location Indicator** is optional and off by default. The default session flow continues to request only While Using the App access and display the blue background-location indicator.
+
+Only switching this preference on explicitly requests an upgrade to Always access. If access has not been requested, WrapPin requests While Using the App first and then requests the upgrade when that permission is granted. Loading the saved choice, opening the app, starting a session and returning to the foreground never request an Always upgrade. If iOS no longer offers the upgrade prompt, you declined it, or you chose Allow Once, use the provided iOS Settings link to choose Always. The preference remains separate from the permission granted by iOS.
+
+WrapPin requests a hidden indicator only while the preference is on and authorization is Always; otherwise it requests a visible indicator. iOS controls the final appearance. Dynamic Island behavior on iOS 27 and continuity during locking or extended background use still require physical-device verification. iOS may periodically remind you about background location access. Turning the preference off restores the indicator but cannot revoke Always access; change the permission back to While Using the App in iOS Settings if desired. Ending a simulation still stops the background location updates.
+
+The preference is stored in local UserDefaults. Coordinates received by the background keep-alive are never saved or uploaded. Selected simulation locations and recovery records remain local as before. This option adds no statistics event or location collection, and does not change the optional anonymous statistics below. The privacy manifest remains unchanged: no location data is collected, and its existing UserDefaults declaration also covers this local preference.
 
 ## Optional anonymous usage statistics
 

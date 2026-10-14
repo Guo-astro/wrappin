@@ -60,9 +60,11 @@ final class CLLocationManager {
     var starts = 0
     var stops = 0
     var requests = 0
+    var alwaysRequests = 0
     func startUpdatingLocation() { starts += 1 }
     func stopUpdatingLocation() { stops += 1 }
     func requestWhenInUseAuthorization() { requests += 1 }
+    func requestAlwaysAuthorization() { alwaysRequests += 1 }
 }
 '''
 
@@ -97,10 +99,43 @@ checks = r'''
         precondition(keepAlive.started)
         precondition(keepAlive.status == .locationUnavailable)
 
+        let stopsBeforeError = manager.stops
+        keepAlive.locationManager(manager, didFailWithError: CLError(code: .other))
+        precondition(keepAlive.status == .locationUnavailable)
+        precondition(keepAlive.started && manager.allowsBackgroundLocationUpdates)
+        precondition(manager.stops == stopsBeforeError)
+        keepAlive.locationManager(manager, didUpdateLocations: [CLLocation()])
+        precondition(keepAlive.status == .receivingUpdates)
+
+        keepAlive.reconcile()
+        precondition(manager.starts == 1) // No duplicate active update request.
+        manager.authorizationStatus = .denied
+        keepAlive.reconcile() // No authorization callback: reconcile must notice it.
+        precondition(!keepAlive.started && !manager.allowsBackgroundLocationUpdates)
+        precondition(keepAlive.status == .denied)
+        manager.authorizationStatus = .authorizedWhenInUse
+        keepAlive.reconcile()
+        precondition(keepAlive.started && manager.starts == 2)
+        CLLocationManager.enabled = false
+        manager.authorizationStatus = .denied
+        keepAlive.reconcile()
+        precondition(!keepAlive.started && keepAlive.status == .servicesDisabled)
+        CLLocationManager.enabled = true
+        manager.authorizationStatus = .authorizedWhenInUse
+        keepAlive.reconcile()
+        precondition(keepAlive.started && manager.starts == 3)
+
+        keepAlive.locationManager(manager, didFailWithError: CLError(code: .denied))
+        precondition(!keepAlive.started && !manager.allowsBackgroundLocationUpdates)
+        keepAlive.reconcile()
+        precondition(keepAlive.started && manager.starts == 4)
+
         keepAlive.stop()
         precondition(!keepAlive.started)
         precondition(!manager.allowsBackgroundLocationUpdates)
         precondition(keepAlive.status == .stopped)
+        keepAlive.reconcile()
+        precondition(!keepAlive.started && manager.starts == 4)
 
         for authorization: CLAuthorizationStatus in [.denied, .restricted] {
             let deniedManager = CLLocationManager()
@@ -121,7 +156,147 @@ checks = r'''
         missing.start()
         precondition(missing.status == .missingBackgroundMode)
         precondition(!missing.started)
+
+        // Default/off must keep the original indicator and authorization behavior.
+        let authorizations: [CLAuthorizationStatus] = [
+            .notDetermined, .denied, .restricted, .authorizedWhenInUse, .authorizedAlways
+        ]
+        for authorization in authorizations {
+            let defaultManager = CLLocationManager()
+            defaultManager.authorizationStatus = authorization
+            let defaultKeepAlive = BackgroundLocationKeepAlive(
+                manager: defaultManager, hasBackgroundMode: true
+            )
+            precondition(!defaultKeepAlive.reducesBackgroundLocationIndicator)
+            precondition(defaultManager.showsBackgroundLocationIndicator)
+            defaultKeepAlive.start()
+            defaultKeepAlive.reconcile()
+            defaultKeepAlive.locationManagerDidChangeAuthorization(defaultManager)
+            precondition(defaultManager.showsBackgroundLocationIndicator)
+            precondition(!defaultKeepAlive.isBackgroundIndicatorHidden)
+            precondition(defaultManager.alwaysRequests == 0)
+            defaultKeepAlive.stop()
+        }
+
+        // Loading a saved preference and session startup never request Always.
+        for authorization in authorizations {
+            let restoredManager = CLLocationManager()
+            restoredManager.authorizationStatus = authorization
+            let restored = BackgroundLocationKeepAlive(
+                manager: restoredManager, hasBackgroundMode: true,
+                reducesBackgroundLocationIndicator: true
+            )
+            precondition(restoredManager.showsBackgroundLocationIndicator
+                == (authorization != .authorizedAlways))
+            restored.start()
+            restored.reconcile()
+            restored.locationManagerDidChangeAuthorization(restoredManager)
+            restored.restoreIndicatorPreference(true)
+            precondition(restoredManager.alwaysRequests == 0)
+            precondition(restoredManager.showsBackgroundLocationIndicator
+                == (authorization != .authorizedAlways))
+            if authorization == .notDetermined {
+                restoredManager.authorizationStatus = .authorizedWhenInUse
+                restored.locationManagerDidChangeAuthorization(restoredManager)
+                precondition(restoredManager.alwaysRequests == 0)
+                precondition(restoredManager.showsBackgroundLocationIndicator)
+            }
+            restored.stop()
+        }
+
+        // Changing an active session's preference takes effect without restarting it.
+        let activeManager = CLLocationManager()
+        activeManager.authorizationStatus = .authorizedAlways
+        let active = BackgroundLocationKeepAlive(manager: activeManager, hasBackgroundMode: true)
+        active.start()
+        active.setIndicatorPreferenceFromUserAction(true)
+        precondition(active.isBackgroundIndicatorHidden && !activeManager.showsBackgroundLocationIndicator)
+        active.setIndicatorPreferenceFromUserAction(false)
+        precondition(!active.isBackgroundIndicatorHidden && activeManager.showsBackgroundLocationIndicator)
+        precondition(activeManager.authorizationStatus == .authorizedAlways) // No permission revocation.
+        active.setIndicatorPreferenceFromUserAction(true)
+        precondition(!activeManager.showsBackgroundLocationIndicator)
+        precondition(active.started && activeManager.starts == 1 && activeManager.stops == 0)
+        precondition(activeManager.alwaysRequests == 0) // Already Always: no upgrade needed.
+
+        activeManager.authorizationStatus = .authorizedWhenInUse
+        active.locationManagerDidChangeAuthorization(activeManager)
+        precondition(active.reducesBackgroundLocationIndicator)
+        precondition(activeManager.showsBackgroundLocationIndicator)
+        precondition(active.authorizationStatus == .authorizedWhenInUse)
+        precondition(activeManager.alwaysRequests == 0) // Downgrade does not trigger an upgrade.
+        activeManager.authorizationStatus = .authorizedAlways
+        active.reconcile() // Notice a Settings change even without a callback.
+        precondition(active.isBackgroundIndicatorHidden)
+        activeManager.authorizationStatus = .authorizedWhenInUse
+        active.reconcile()
+        precondition(activeManager.showsBackgroundLocationIndicator)
+        active.setIndicatorPreferenceFromUserAction(false)
+        active.setIndicatorPreferenceFromUserAction(true)
+        precondition(activeManager.alwaysRequests == 1) // Explicit enabling with While Using.
+        precondition(activeManager.showsBackgroundLocationIndicator)
+        active.setIndicatorPreferenceFromUserAction(true)
+        active.reconcile()
+        active.locationManagerDidChangeAuthorization(activeManager) // Upgrade declined/no prompt.
+        precondition(activeManager.alwaysRequests == 1)
+        precondition(active.reducesBackgroundLocationIndicator && activeManager.showsBackgroundLocationIndicator)
+        activeManager.authorizationStatus = .authorizedAlways
+        active.locationManagerDidChangeAuthorization(activeManager)
+        precondition(active.isBackgroundIndicatorHidden)
+        active.stop()
+        precondition(!active.started && !activeManager.allowsBackgroundLocationUpdates)
+        precondition(activeManager.stops == 1)
+        active.reconcile()
+        precondition(activeManager.starts == 1 && activeManager.alwaysRequests == 1)
+
+        // Explicit enabling before authorization first requests While Using, then upgrades once.
+        let newManager = CLLocationManager()
+        let newChoice = BackgroundLocationKeepAlive(manager: newManager, hasBackgroundMode: true)
+        newChoice.setIndicatorPreferenceFromUserAction(true)
+        precondition(newManager.requests == 1 && newManager.alwaysRequests == 0)
+        precondition(newManager.showsBackgroundLocationIndicator)
+        newManager.authorizationStatus = .authorizedWhenInUse
+        newChoice.locationManagerDidChangeAuthorization(newManager)
+        precondition(newManager.alwaysRequests == 1 && newManager.showsBackgroundLocationIndicator)
+        newChoice.locationManagerDidChangeAuthorization(newManager)
+        newChoice.start()
+        newChoice.reconcile()
+        precondition(newManager.alwaysRequests == 1)
+        newManager.authorizationStatus = .authorizedAlways
+        newChoice.locationManagerDidChangeAuthorization(newManager)
+        precondition(newChoice.isBackgroundIndicatorHidden)
+
+        // Declining access cancels the pending upgrade; a later Settings grant stays passive.
+        let declinedManager = CLLocationManager()
+        let declined = BackgroundLocationKeepAlive(manager: declinedManager, hasBackgroundMode: true)
+        declined.setIndicatorPreferenceFromUserAction(true)
+        declinedManager.authorizationStatus = .denied
+        declined.locationManagerDidChangeAuthorization(declinedManager)
+        declinedManager.authorizationStatus = .authorizedWhenInUse
+        declined.locationManagerDidChangeAuthorization(declinedManager)
+        precondition(declined.reducesBackgroundLocationIndicator)
+        precondition(declinedManager.alwaysRequests == 0 && declinedManager.showsBackgroundLocationIndicator)
+
+        let cancelledManager = CLLocationManager()
+        let cancelled = BackgroundLocationKeepAlive(manager: cancelledManager, hasBackgroundMode: true)
+        cancelled.setIndicatorPreferenceFromUserAction(true)
+        cancelled.setIndicatorPreferenceFromUserAction(false)
+        cancelledManager.authorizationStatus = .authorizedWhenInUse
+        cancelled.locationManagerDidChangeAuthorization(cancelledManager)
+        precondition(cancelledManager.alwaysRequests == 0 && cancelledManager.showsBackgroundLocationIndicator)
+
+        // With denied/restricted access the toggle retains its choice and requests no permission.
+        for authorization: CLAuthorizationStatus in [.denied, .restricted] {
+            let blockedManager = CLLocationManager()
+            blockedManager.authorizationStatus = authorization
+            let blocked = BackgroundLocationKeepAlive(manager: blockedManager, hasBackgroundMode: true)
+            blocked.setIndicatorPreferenceFromUserAction(true)
+            precondition(blocked.reducesBackgroundLocationIndicator)
+            precondition(blockedManager.requests == 0 && blockedManager.alwaysRequests == 0)
+            precondition(blockedManager.showsBackgroundLocationIndicator)
+        }
         print("Background keep-alive lifecycle checks passed")
+        print("Indicator preference and explicit authorization upgrade checks passed")
     }
 }
 '''

@@ -53,13 +53,6 @@ struct ConnectionHealthView: View {
                 )
 
                 healthRow(
-                    title: String(localized: "Background Session"),
-                    value: backgroundSessionValue,
-                    symbol: backgroundSessionSymbol,
-                    color: backgroundSessionColor
-                )
-
-                healthRow(
                     title: String(localized: "Connection Stage"),
                     value: appModel.deviceSession.connectionStage.title,
                     symbol: "point.3.connected.trianglepath.dotted",
@@ -74,6 +67,22 @@ struct ConnectionHealthView: View {
                         color: .secondary
                     )
                 }
+            }
+
+            Section {
+                healthRow(
+                    title: String(localized: "Background Session"),
+                    value: backgroundSessionValue,
+                    symbol: backgroundSessionSymbol,
+                    color: backgroundSessionColor
+                )
+                LabeledContent("Location Authorization", value: appModel.deviceSession.backgroundKeepAlive.authorizationTitle)
+                LabeledContent(
+                    "Location Indicator",
+                    value: appModel.deviceSession.backgroundKeepAlive.isBackgroundIndicatorHidden
+                        ? String(localized: "Hide While Active")
+                        : String(localized: "Show While Active")
+                )
 
                 if case .active = appModel.deviceSession.phase,
                    !appModel.deviceSession.backgroundKeepAlive.started {
@@ -85,6 +94,10 @@ struct ConnectionHealthView: View {
                     .foregroundStyle(.orange)
                     .accessibilityElement(children: .combine)
                 }
+            } header: {
+                Text("Background Session")
+            } footer: {
+                Text("The indicator status reflects WrapPin's requested behavior during background keep-alive. iOS controls its final appearance.")
             }
 
             Section("Restoration") {

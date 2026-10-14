@@ -715,3 +715,32 @@
 "The VPN configuration changed. Close this page and try again." = "VPN 配置已发生变化。请关闭本页后重试。";
 "Could not start the built-in tunnel (%@). Check VPN approval and signing permissions, then try again." = "无法开启内置隧道（%@）。请检查 VPN 授权和签名权限后重试。";
 "iOS could not read or save the VPN configuration. Check VPN approval and the app and extension signing profiles, then try again." = "iOS 无法读取或保存 VPN 配置。请检查 VPN 授权，以及 App 和扩展的签名配置后重试。";
+
+/* Session interruption and bounded location writes */
+"The iPhone did not confirm the selected location in time." = "iPhone 未在规定时间内确认所选位置，请检查设备通道后重试。";
+"The iPhone did not confirm updating the location in time." = "iPhone 未在规定时间内确认位置更新，请检查设备通道后重试。";
+"This is the last location you set, not confirmation that it is still active." = "这是上次设置的位置，不代表当前仍在生效。";
+"Resuming the previous session…" = "正在继续上次的模拟…";
+
+/* Optional background location indicator */
+"Reduce Background Location Indicator" = "减少后台定位指示器";
+"Background Location Indicator" = "后台定位指示器";
+"Location Authorization" = "定位授权";
+"While Using the App" = "使用 App 期间";
+"Always" = "始终";
+"Denied" = "已拒绝";
+"Restricted" = "受限制";
+"Open iOS Settings" = "打开系统设置";
+"Always access has not been granted. If the upgrade prompt does not appear or you previously declined it, open iOS Settings and choose Always. The indicator remains visible until access is granted." = "尚未获得“始终”定位权限。如果升级提示没有出现，或你之前拒绝过升级，请打开系统设置选择“始终”。授权前仍会显示定位指示器。";
+"Optional and off by default. Enabling requires Always location access to hide the blue location indicator while keeping a simulation active in the background. iOS may periodically remind you that WrapPin uses location in the background. Coordinates received for background keep-alive are never saved or uploaded." = "可选功能，默认关闭。开启后需要“始终”定位权限，用于在后台保持模拟时不显示蓝色定位指示器。iOS 可能会定期提醒 WrapPin 在后台使用位置。后台保持收到的坐标不会保存或上传。";
+"Turning this off restores the indicator but cannot revoke Always access. You can change access back to While Using the App in iOS Settings." = "关闭后恢复显示指示器，但 App 无法撤回“始终”权限。你可以在系统设置中改回“使用 App 期间”。";
+"Location Indicator" = "定位指示器";
+"Hide While Active" = "运行时隐藏";
+"Show While Active" = "运行时显示";
+"The indicator status reflects WrapPin's requested behavior during background keep-alive. iOS controls its final appearance." = "指示器状态表示 WrapPin 在后台保持时请求的显示方式，最终显示由 iOS 决定。";
+
+/* Upstream acknowledgement in Settings */
+"WrapPin is based on earlier [Roam Control](https://github.com/seanhowarthdev/Roam-Control) source releases by Sean Howarth. Thank you for sharing the original project." = "WrapPin 基于 Sean Howarth 早期公开的 [Roam Control](https://github.com/seanhowarthdev/Roam-Control) 源码开发，感谢原作者的分享。";
+
+/* Tunnel handoff and compatibility */
+"This setting chooses which app WrapPin opens for tunnel setup; it does not limit which apps are compatible. Other VPN or proxy apps can also be used if they provide a correctly configured device tunnel. Enable their tunnel manually first." = "此设置用于选择自动跳转的应用，不限制可使用的代理软件。其他代理或 VPN 软件只要已正确配置兼容的设备隧道，也可手动开启后直接使用。";

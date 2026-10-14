@@ -14,6 +14,7 @@ final class AppModel {
     private static let usesBuiltInTunnelKey = "usesBuiltInTunnel"
     private static let activeSessionRecoveryKey = "activeSessionRecovery"
     private static let anonymousUsageStatisticsKey = "sharesAnonymousUsageStatistics"
+    private static let reducesBackgroundLocationIndicatorKey = "reducesBackgroundLocationIndicator"
 
     private let preferences: UserDefaults
 
@@ -30,11 +31,15 @@ final class AppModel {
     private(set) var tunnelHandoffApp: TunnelHandoffApp
     private(set) var usesBuiltInTunnel: Bool
     private(set) var sharesAnonymousUsageStatistics: Bool
+    private(set) var reducesBackgroundLocationIndicator: Bool
     private(set) var interruptedSession: SessionRecoveryRecord?
     private(set) var isRestoringInterruptedSession = false
     private(set) var interruptedSessionError: String?
+    private(set) var isStartingLocationSession = false
 
     private var activeSessionRecovery: SessionRecoveryRecord?
+    private var pendingSessionRecovery: SessionRecoveryRecord?
+    private var pendingLocationStartIdentifier: UUID?
     private var lastRecoverySaveDate: Date?
     private var restorationReachedActiveSession = false
     private var restorationWasCancelled = false
@@ -93,9 +98,15 @@ final class AppModel {
         self.sharesAnonymousUsageStatistics = Self.initialUsageStatisticsPreference(
             in: preferences
         )
+        self.reducesBackgroundLocationIndicator = preferences.bool(
+            forKey: Self.reducesBackgroundLocationIndicatorKey
+        )
         self.interruptedSession = Self.recoveryRecord(in: preferences)
         self.deviceSession.tunnelHandoffApp = tunnelHandoffApp
         self.deviceSession.usesBuiltInTunnel = usesBuiltInTunnel
+        self.deviceSession.backgroundKeepAlive.restoreIndicatorPreference(
+            self.reducesBackgroundLocationIndicator
+        )
 
         onDevicePairing.onFailure = { [weak self] stage in
             guard let self else { return }
@@ -259,6 +270,13 @@ final class AppModel {
         }
     }
 
+    func setReducesBackgroundLocationIndicator(_ enabled: Bool) {
+        guard enabled != reducesBackgroundLocationIndicator else { return }
+        reducesBackgroundLocationIndicator = enabled
+        preferences.set(enabled, forKey: Self.reducesBackgroundLocationIndicatorKey)
+        deviceSession.backgroundKeepAlive.setIndicatorPreferenceFromUserAction(enabled)
+    }
+
     func completeOnboarding() {
         preferences.set(
             sharesAnonymousUsageStatistics,
@@ -299,8 +317,13 @@ final class AppModel {
         usesBuiltInTunnel = BuildEdition.supportsBuiltInTunnel
         deviceSession.usesBuiltInTunnel = BuildEdition.supportsBuiltInTunnel
         sharesAnonymousUsageStatistics = false
+        reducesBackgroundLocationIndicator = false
+        deviceSession.backgroundKeepAlive.restoreIndicatorPreference(false)
         interruptedSession = nil
         activeSessionRecovery = nil
+        pendingSessionRecovery = nil
+        pendingLocationStartIdentifier = nil
+        isStartingLocationSession = false
         isRestoringInterruptedSession = false
         interruptedSessionError = nil
         restorationWasCancelled = false
@@ -410,15 +433,18 @@ final class AppModel {
         historyTarget: LocationTarget,
         recovery: SessionRecoveryRecord
     ) async {
+        guard !isStartingLocationSession, !isRestoringInterruptedSession, !deviceSession.isBusy else { return }
         guard case .paired = pairingStatus else {
             connectionState = .notConfigured
             return
         }
 
         self.selectedTarget = selectedTarget
-        dismissInterruptedSessionRecovery()
-        activeSessionRecovery = recovery
-        lastRecoverySaveDate = nil
+        interruptedSessionError = nil
+        pendingSessionRecovery = recovery
+        isStartingLocationSession = true
+        let startIdentifier = UUID()
+        pendingLocationStartIdentifier = startIdentifier
         addToHistory(historyTarget)
         let simulationCoordinates = FixedCoordinateTransform.coordinates(
             for: deviceTarget,
@@ -430,6 +456,8 @@ final class AppModel {
             simulationCoordinates: simulationCoordinates
         ) {
         case .updated:
+            // Updating the same target need not emit a phase change.
+            activatePendingSessionRecovery(at: deviceTarget)
             usageAnalytics.record(
                 .activeLocationUpdated,
                 enabled: sharesAnonymousUsageStatistics
@@ -442,11 +470,17 @@ final class AppModel {
         }
 
         do {
-            guard let pairingRecord = try await pairingService.pairingRecordData() else {
-                activeSessionRecovery = nil
+            let pairingRecord = try await pairingService.pairingRecordData()
+            guard pendingLocationStartIdentifier == startIdentifier else { return }
+            guard let pairingRecord else {
+                preserveRecoveryAfterFailure(stage: .locationPreparation, isStoppingOrRestoring: false)
+                isStartingLocationSession = false
                 pendingSessionAnalyticsEvent = nil
                 pairingStatus = .notPaired
                 connectionState = .notConfigured
+                if interruptedSession != nil {
+                    interruptedSessionError = String(localized: "The saved pairing record is unavailable. Pair this iPhone again.")
+                }
                 usageAnalytics.recordFailure(.locationPreparation, context: .location, enabled: sharesAnonymousUsageStatistics)
                 usageAnalytics.record(
                     .locationPreparationFailed,
@@ -465,7 +499,10 @@ final class AppModel {
                 simulationCoordinates: simulationCoordinates
             )
         } catch {
-            activeSessionRecovery = nil
+            guard pendingLocationStartIdentifier == startIdentifier else { return }
+            preserveRecoveryAfterFailure(stage: .locationPreparation, isStoppingOrRestoring: false)
+            isStartingLocationSession = false
+            if interruptedSession != nil { interruptedSessionError = error.localizedDescription }
             pendingSessionAnalyticsEvent = nil
             connectionState = .failed(message: error.localizedDescription)
             usageAnalytics.recordFailure(.locationPreparation, context: .location, enabled: sharesAnonymousUsageStatistics)
@@ -477,6 +514,7 @@ final class AppModel {
     }
 
     func restoreRealLocationFromInterruptedSession() async {
+        guard !isStartingLocationSession, !isRestoringInterruptedSession, !deviceSession.isBusy else { return }
         guard let recovery = interruptedSession else { return }
         guard case .paired = pairingStatus else {
             interruptedSessionError = String(localized: "Pair this iPhone before restoring its real location.")
@@ -487,10 +525,15 @@ final class AppModel {
         isRestoringInterruptedSession = true
         restorationReachedActiveSession = false
         restorationWasCancelled = false
+        let startIdentifier = UUID()
+        pendingLocationStartIdentifier = startIdentifier
 
         do {
-            guard let pairingRecord = try await pairingService.pairingRecordData() else {
+            let pairingRecord = try await pairingService.pairingRecordData()
+            guard pendingLocationStartIdentifier == startIdentifier else { return }
+            guard let pairingRecord else {
                 isRestoringInterruptedSession = false
+                pendingLocationStartIdentifier = nil
                 interruptedSessionError = String(localized: "The saved pairing record is unavailable. Pair this iPhone again.")
                 usageAnalytics.recordFailure(.locationPreparation, context: .restoration, enabled: sharesAnonymousUsageStatistics)
                 usageAnalytics.record(.locationRestoreFailed, enabled: sharesAnonymousUsageStatistics)
@@ -506,7 +549,9 @@ final class AppModel {
                 )
             )
         } catch {
+            guard pendingLocationStartIdentifier == startIdentifier else { return }
             isRestoringInterruptedSession = false
+            pendingLocationStartIdentifier = nil
             interruptedSessionError = error.localizedDescription
             usageAnalytics.recordFailure(.locationPreparation, context: .restoration, enabled: sharesAnonymousUsageStatistics)
             usageAnalytics.record(.locationRestoreFailed, enabled: sharesAnonymousUsageStatistics)
@@ -516,6 +561,11 @@ final class AppModel {
     func cancelInterruptedSessionRestoration() {
         guard isRestoringInterruptedSession else { return }
         restorationWasCancelled = true
+        if cancelPendingLocationPreparation() {
+            isRestoringInterruptedSession = false
+            restorationWasCancelled = false
+            return
+        }
         deviceSession.stop()
     }
 
@@ -532,8 +582,23 @@ final class AppModel {
     }
 
     func stopLocationSession() {
+        if cancelPendingLocationPreparation() { return }
         isStoppingLocationSessionForRestoration = true
         deviceSession.stop()
+    }
+
+    private func cancelPendingLocationPreparation() -> Bool {
+        guard pendingLocationStartIdentifier != nil else { return false }
+        switch deviceSession.phase {
+        case .idle, .failed:
+            // Cancel the suspended pairing read without deleting the old record.
+            pendingLocationStartIdentifier = nil
+            pendingSessionRecovery = nil
+            isStartingLocationSession = false
+            return true
+        default:
+            return false
+        }
     }
 
     func handleOpenURL(_ url: URL) {
@@ -542,6 +607,9 @@ final class AppModel {
 
     func appBecameActive() {
         guard hasCompletedOnboarding else { return }
+        // Refresh the displayed permission even without an active simulation.
+        // reconcile never asks for Always access.
+        deviceSession.backgroundKeepAlive.reconcile()
         usageAnalytics.recordActivation(enabled: sharesAnonymousUsageStatistics)
     }
 
@@ -582,26 +650,36 @@ final class AppModel {
         case .idle:
             pendingSessionAnalyticsEvent = nil
             isStoppingLocationSessionForRestoration = false
+            isStartingLocationSession = false
             if isRestoringInterruptedSession {
-                let didRestore = restorationReachedActiveSession && !restorationWasCancelled
                 isRestoringInterruptedSession = false
                 restorationReachedActiveSession = false
                 restorationWasCancelled = false
-                if didRestore {
-                    dismissInterruptedSessionRecovery()
-                }
             }
-            clearActiveSessionRecovery()
+            if deviceSession.didConfirmLocationClear {
+                clearConfirmedSessionRecovery()
+            } else if activeSessionRecovery != nil {
+                preserveRecoveryAfterFailure(stage: nil, isStoppingOrRestoring: true)
+            }
+            // Cancelling before any write does not resolve an older record.
+            activeSessionRecovery = nil
+            pendingSessionRecovery = nil
+            pendingLocationStartIdentifier = nil
+            lastRecoverySaveDate = nil
             if case .paired = pairingStatus {
                 connectionState = .ready
             } else {
                 connectionState = .notConfigured
             }
-        case .openingLocalDevVPN, .discovering, .connecting, .stopping:
+        case .openingLocalDevVPN, .discovering, .connecting:
             connectionState = .connecting
+        case .stopping:
+            connectionState = .connecting
+            isStoppingLocationSessionForRestoration = true
         case .active(let target):
             connectionState = .active
             isStoppingLocationSessionForRestoration = false
+            pendingLocationStartIdentifier = nil
             if let event = pendingSessionAnalyticsEvent {
                 usageAnalytics.record(event, enabled: sharesAnonymousUsageStatistics)
                 pendingSessionAnalyticsEvent = nil
@@ -620,13 +698,23 @@ final class AppModel {
                     }
                 }
             } else {
-                persistActiveSessionRecovery(at: target)
+                activatePendingSessionRecovery(at: target)
             }
         case .failed(let message):
             pendingSessionAnalyticsEvent = nil
             connectionState = .failed(message: message)
+            if deviceSession.didConfirmLocationClear {
+                clearConfirmedSessionRecovery()
+                return
+            }
+            let wasStoppingOrRestoring = isRestoringInterruptedSession || isStoppingLocationSessionForRestoration
+            preserveRecoveryAfterFailure(
+                stage: deviceSession.lastFailureStage,
+                isStoppingOrRestoring: wasStoppingOrRestoring
+            )
+            isStartingLocationSession = false
+            if interruptedSession != nil { interruptedSessionError = message }
             if isRestoringInterruptedSession || isStoppingLocationSessionForRestoration {
-                let wasRestoringInterruptedSession = isRestoringInterruptedSession
                 if !restorationWasCancelled {
                     usageAnalytics.record(.locationRestoreFailed, enabled: sharesAnonymousUsageStatistics)
                 }
@@ -634,19 +722,64 @@ final class AppModel {
                 restorationReachedActiveSession = false
                 restorationWasCancelled = false
                 isStoppingLocationSessionForRestoration = false
-                if wasRestoringInterruptedSession {
-                    interruptedSessionError = message
-                }
             } else {
                 usageAnalytics.record(
                     analyticsEvent(forLocationStartFailure: deviceSession.lastFailureStage),
                     enabled: sharesAnonymousUsageStatistics
                 )
-                if deviceSession.lastFailureStage != .locationRestore {
-                    clearActiveSessionRecovery()
-                }
             }
         }
+    }
+
+    private func clearConfirmedSessionRecovery() {
+        dismissInterruptedSessionRecovery()
+        clearActiveSessionRecovery()
+        pendingSessionRecovery = nil
+        pendingLocationStartIdentifier = nil
+        lastRecoverySaveDate = nil
+        isStartingLocationSession = false
+        isRestoringInterruptedSession = false
+        isStoppingLocationSessionForRestoration = false
+        restorationReachedActiveSession = false
+        restorationWasCancelled = false
+    }
+
+    private func activatePendingSessionRecovery(at target: LocationTarget) {
+        if let pendingSessionRecovery {
+            activeSessionRecovery = pendingSessionRecovery
+            self.pendingSessionRecovery = nil
+            lastRecoverySaveDate = nil
+        }
+        // The new session has reached .active: only now may it replace the old record.
+        persistActiveSessionRecovery(at: target)
+        interruptedSession = nil
+        interruptedSessionError = nil
+        isStartingLocationSession = false
+        pendingLocationStartIdentifier = nil
+    }
+
+    private func preserveRecoveryAfterFailure(stage: FailureStage?, isStoppingOrRestoring: Bool) {
+        let recovery = SessionRecoveryPolicy.recordAfterFailure(
+            failureStage: stage,
+            existingUnconfirmedRecord: interruptedSession,
+            activeRecord: activeSessionRecovery,
+            pendingRecord: pendingSessionRecovery,
+            isStoppingOrRestoring: isStoppingOrRestoring,
+            didConfirmLocationClear: deviceSession.didConfirmLocationClear
+        )
+        if let recovery {
+            // Force-save the latest in-memory route point, bypassing the five-second throttle.
+            if let data = try? JSONEncoder().encode(recovery) {
+                preferences.set(data, forKey: Self.activeSessionRecoveryKey)
+            }
+            interruptedSession = recovery
+        } else {
+            clearActiveSessionRecovery()
+        }
+        activeSessionRecovery = nil
+        pendingSessionRecovery = nil
+        pendingLocationStartIdentifier = nil
+        lastRecoverySaveDate = nil
     }
 
     private func analyticsEvent(forLocationStartFailure stage: FailureStage?) -> UsageAnalyticsEvent {
