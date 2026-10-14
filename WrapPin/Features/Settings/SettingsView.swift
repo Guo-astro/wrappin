@@ -1,4 +1,6 @@
+import CoreLocation
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     private static let repositoryURL = URL(
@@ -17,6 +19,7 @@ struct SettingsView: View {
     @Environment(AppModel.self) private var appModel
     @Environment(ReleaseUpdateModel.self) private var releaseUpdates
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var xLogoSize: CGFloat = 25
     @State private var isShowingDeviceSetup = false
@@ -106,6 +109,8 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+                backgroundIndicatorSection
 
                 Section {
                     Toggle(isOn: anonymousUsageStatisticsBinding) {
@@ -389,6 +394,44 @@ struct SettingsView: View {
             get: { appModel.sharesAnonymousUsageStatistics },
             set: appModel.setSharesAnonymousUsageStatistics
         )
+    }
+
+    private var backgroundIndicatorSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { appModel.reducesBackgroundLocationIndicator },
+                set: appModel.setReducesBackgroundLocationIndicator
+            )) {
+                settingsRowLabel("Reduce Background Location Indicator", symbol: "location")
+            }
+
+            LabeledContent("Location Authorization", value: appModel.deviceSession.backgroundKeepAlive.authorizationTitle)
+
+            if appModel.reducesBackgroundLocationIndicator,
+               appModel.deviceSession.backgroundKeepAlive.authorizationStatus != .authorizedAlways {
+                Text("Always access has not been granted. If the upgrade prompt does not appear or you previously declined it, open iOS Settings and choose Always. The indicator remains visible until access is granted.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if appModel.reducesBackgroundLocationIndicator
+                || appModel.deviceSession.backgroundKeepAlive.authorizationStatus == .authorizedAlways {
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        openURL(url)
+                    }
+                } label: {
+                    settingsRowLabel("Open iOS Settings", symbol: "gear")
+                }
+            }
+        } header: {
+            Text("Background Location Indicator")
+        } footer: {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Optional and off by default. Enabling requires Always location access to hide the blue location indicator while keeping a simulation active in the background. iOS may periodically remind you that WrapPin uses location in the background. Coordinates received for background keep-alive are never saved or uploaded.")
+                Text("Turning this off restores the indicator but cannot revoke Always access. You can change access back to While Using the App in iOS Settings.")
+            }
+        }
     }
 
     private var versionText: String {

@@ -51,6 +51,8 @@
 	<string>WrapPin uses the local network to pair with and connect to this iPhone through a compatible device tunnel.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>WrapPin uses Location Services to keep an active test session running in the background and to return the map to your real position after it stops.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Allow Always access to reduce the blue location indicator while WrapPin keeps a simulation active in the background. Coordinates received for background keep-alive are never saved or uploaded.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

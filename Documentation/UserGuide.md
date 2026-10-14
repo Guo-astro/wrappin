@@ -138,6 +138,14 @@ Swiping WrapPin away in the App Switcher ends its simulation connection. A VPN t
 
 The native engine checks the connection through subsequent coordinate writes, normally refreshed every four seconds. This timing and the 15-second write timeout apply while the process can run; they are not a guarantee that a suspended app detects a disconnection within 20 seconds.
 
+### Reduce the background location indicator (optional)
+
+**Settings → Background Location Indicator → Reduce Background Location Indicator** is off by default. Leave it off to keep the existing While Using the App permission flow and indicator behavior. Switching it on requires **Always** location access. Without location authorization, WrapPin requests While Using the App first and then asks for the upgrade. If you previously declined the upgrade, chose Allow Once, or see no upgrade prompt, tap **Open iOS Settings** and select Always. The switch keeps your preference even if permission is not granted; restarting WrapPin, starting a simulation or returning to the foreground does not request an upgrade automatically.
+
+Only the combination of this preference and Always access requests a hidden blue indicator. **Settings → Connection Health → Background Session** shows the authorization level and requested indicator behavior. Changes apply immediately during a running session; lowering permission restores the indicator. iOS determines the final appearance, and Dynamic Island behavior on iOS 27 plus locked-screen and long background continuity still need physical-device validation. This option does not fix a lost device connection.
+
+iOS may periodically remind you that WrapPin uses location in the background. The background keep-alive still does not save or upload received coordinates. Turning the switch off restores the indicator without revoking Always access; you can change permission back to While Using the App in iOS Settings. **Stop & Restore** still stops location updates.
+
 ## Anonymous usage statistics
 
 The final introduction page shows **Share Anonymous Usage Statistics** before setup completes. It is off by default and sends nothing unless you choose to switch it on. The choice can be changed at any time under **Settings → Privacy**.

@@ -14,6 +14,7 @@ final class AppModel {
     private static let usesBuiltInTunnelKey = "usesBuiltInTunnel"
     private static let activeSessionRecoveryKey = "activeSessionRecovery"
     private static let anonymousUsageStatisticsKey = "sharesAnonymousUsageStatistics"
+    private static let reducesBackgroundLocationIndicatorKey = "reducesBackgroundLocationIndicator"
 
     private let preferences: UserDefaults
 
@@ -30,6 +31,7 @@ final class AppModel {
     private(set) var tunnelHandoffApp: TunnelHandoffApp
     private(set) var usesBuiltInTunnel: Bool
     private(set) var sharesAnonymousUsageStatistics: Bool
+    private(set) var reducesBackgroundLocationIndicator: Bool
     private(set) var interruptedSession: SessionRecoveryRecord?
     private(set) var isRestoringInterruptedSession = false
     private(set) var interruptedSessionError: String?
@@ -96,9 +98,15 @@ final class AppModel {
         self.sharesAnonymousUsageStatistics = Self.initialUsageStatisticsPreference(
             in: preferences
         )
+        self.reducesBackgroundLocationIndicator = preferences.bool(
+            forKey: Self.reducesBackgroundLocationIndicatorKey
+        )
         self.interruptedSession = Self.recoveryRecord(in: preferences)
         self.deviceSession.tunnelHandoffApp = tunnelHandoffApp
         self.deviceSession.usesBuiltInTunnel = usesBuiltInTunnel
+        self.deviceSession.backgroundKeepAlive.restoreIndicatorPreference(
+            self.reducesBackgroundLocationIndicator
+        )
 
         onDevicePairing.onFailure = { [weak self] stage in
             guard let self else { return }
@@ -262,6 +270,13 @@ final class AppModel {
         }
     }
 
+    func setReducesBackgroundLocationIndicator(_ enabled: Bool) {
+        guard enabled != reducesBackgroundLocationIndicator else { return }
+        reducesBackgroundLocationIndicator = enabled
+        preferences.set(enabled, forKey: Self.reducesBackgroundLocationIndicatorKey)
+        deviceSession.backgroundKeepAlive.setIndicatorPreferenceFromUserAction(enabled)
+    }
+
     func completeOnboarding() {
         preferences.set(
             sharesAnonymousUsageStatistics,
@@ -302,6 +317,8 @@ final class AppModel {
         usesBuiltInTunnel = BuildEdition.supportsBuiltInTunnel
         deviceSession.usesBuiltInTunnel = BuildEdition.supportsBuiltInTunnel
         sharesAnonymousUsageStatistics = false
+        reducesBackgroundLocationIndicator = false
+        deviceSession.backgroundKeepAlive.restoreIndicatorPreference(false)
         interruptedSession = nil
         activeSessionRecovery = nil
         pendingSessionRecovery = nil
@@ -590,9 +607,9 @@ final class AppModel {
 
     func appBecameActive() {
         guard hasCompletedOnboarding else { return }
-        if case .active = deviceSession.phase {
-            deviceSession.backgroundKeepAlive.reconcile()
-        }
+        // Refresh the displayed permission even without an active simulation.
+        // reconcile never asks for Always access.
+        deviceSession.backgroundKeepAlive.reconcile()
         usageAnalytics.recordActivation(enabled: sharesAnonymousUsageStatistics)
     }
 

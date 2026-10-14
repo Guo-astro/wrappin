@@ -56,7 +56,20 @@ Use this checklist before packaging an IPA or declaring a development build stab
 - [ ] The first active session requests Location access and Connection Health reports the background-session state accurately.
 - [ ] With Location access denied, foreground simulation still starts and Connection Health explains that background continuity is unavailable.
 - [ ] Stop & Restore requires confirmation, then restores the real location.
-- [ ] The blue background-location indicator appears only while a simulation is active and disappears after Stop & Restore.
+- [ ] With Reduce Background Location Indicator off, the blue background-location indicator appears only while a simulation is active and disappears after Stop & Restore.
+
+### Reduce Background Location Indicator (optional; physical device required)
+
+- [ ] A clean install has the option off. It preserves the existing While Using the App request and indicator behavior, including when Always access is already granted.
+- [ ] With no location authorization, explicitly enabling first requests While Using the App and then requests an Always upgrade. Test Allow Once separately: when the upgrade is unavailable, the explanation and Open iOS Settings entry remain usable.
+- [ ] With While Using the App access, only explicitly enabling the option requests Always. Relaunching with a saved enabled choice, starting a session and returning to the foreground never request the upgrade.
+- [ ] Decline the Always upgrade or use an installation where iOS no longer offers it: the option stays on, the indicator stays visible, and the explanation links to system settings.
+- [ ] Grant Always in system settings and return; Connection Health shows the new authorization and Hide While Active. Downgrade to While Using the App and return; it shows Show While Active without requesting another upgrade.
+- [ ] On iOS 27 with the option on and Always granted, check whether the blue Dynamic Island indicator actually disappears during simulation. The diagnostic value reports requested behavior, not proof of system UI appearance.
+- [ ] Switch the option on/off during a session: indicator behavior updates without restarting simulation. Turning it off does not revoke Always; changing permission in system settings works.
+- [ ] Compare locked-screen and extended background sessions with the option on/off for fixed, walking and driving simulation. Hiding the indicator must not worsen continuity; no auto-reconnection is promised.
+- [ ] Stop & Restore ends location updates and the indicator disappears with both preference states. Verify real-location restoration in Apple Maps and another app.
+- [ ] The explanation mentions periodic iOS reminders and that background keep-alive coordinates are not saved or uploaded. No new statistics event or location field is sent.
 
 ### Tunnel app handoff (new branch; physical device required)
 
