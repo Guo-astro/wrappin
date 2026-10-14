@@ -101,6 +101,14 @@ Use this checklist before packaging an IPA or declaring a development build stab
 
 ## Recovery
 
+- [ ] Disconnect the device tunnel during fixed, walking and driving sessions: a failed write offers recovery in the current run and preserves the latest route point, mode and speed after relaunch.
+- [ ] Retry recovery with the tunnel unavailable, and separately select a different place and fail to connect: the previous unconfirmed record remains available.
+- [ ] With an unresponsive device, pending coordinate writes and clearing each expire after 15 seconds while WrapPin can execute. Stop never waits indefinitely; a write that finishes near its deadline followed by a clear timeout may take about 30 seconds in total.
+- [ ] A stop without clear acknowledgement offers recovery; test Resume and Restore Real Location separately after reconnecting the device tunnel, and verify the result in Apple Maps and another app.
+- [ ] Cancel a startup before its first write while an older recovery record exists: keep that record. A confirmed clear, a new active session, or explicit dismissal removes or replaces it.
+- [ ] Deny Location access during an active session, return to WrapPin and see the home-screen background warning. Restore access and return: keep-alive reconciles without reconnecting the simulation session.
+- [ ] Swiping away the app ends the simulation connection; a still-connected VPN must not be presented as proof that simulation continues.
+
 - [ ] Force-closing during a fixed session shows interrupted-session recovery on relaunch.
 - [ ] Resume Location reconnects to the saved location.
 - [ ] Restore Real Location requires confirmation, clears the simulated location and leaves no new session active.

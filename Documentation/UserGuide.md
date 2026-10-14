@@ -115,14 +115,16 @@ Under **Settings → Feedback**, **Report a Bug** and **Request a Feature** open
 
 ## Interrupted-session recovery
 
-If WrapPin closes without receiving a normal end signal, the next launch explains that the previous session may still be active.
+If a coordinate write or stop cannot be confirmed, recovery options appear in the current run. They also appear after relaunch when an unconfirmed record was saved. The displayed location is the last location you set, not confirmation that it is still active.
 
 - **Resume Location** reconnects to a fixed location.
 - **Resume Walking** prepares the remaining route from the most recently saved point.
 - **Restore Real Location** reconnects only long enough to clear the simulated location.
 - **My Real Location Is Already Back** dismisses the recovery record without reconnecting.
 
-Nothing starts automatically from this screen.
+Nothing starts automatically from this screen. A failed retry, including selecting a different location and failing to connect, keeps the previous unconfirmed record. It is removed or replaced only after the device confirms clearing the simulation, a new session becomes active, or you choose to dismiss it. Failed writes save the latest in-memory route point without waiting for the usual save interval.
+
+Coordinate writes and clearing the location each have a 15-second timeout. A write timeout ends the operation without trying to clear over the same untrusted connection. If a write finishes just before its deadline and clearing then times out, stopping can take about 30 seconds while the app is running. An error or timeout does not confirm that the real location has returned; check it after recovery.
 
 ## Appearance and accessibility
 
@@ -130,7 +132,11 @@ Settings offers automatic, light and dark appearance plus standard, satellite an
 
 ## Background sessions
 
-An active location session uses iOS Location Services only as a background keep-alive; the coordinates still come from the native developer simulation service and are never read or stored by the keep-alive. Allow Location access when iOS asks. The blue background-location indicator may appear while a simulation is active. If access is denied, foreground simulation can still work, but continuity after switching apps is not guaranteed. **Settings → Connection Health → Background Session** shows the current keep-alive state.
+An active location session uses iOS Location Services only as a background keep-alive; the coordinates still come from the native developer simulation service and are never read or stored by the keep-alive. Allow Location access when iOS asks. The blue background-location indicator may appear while a simulation is active. If access is denied, foreground simulation can still work, but continuity after switching apps is not guaranteed. **Settings → Connection Health → Background Session** shows the current keep-alive state. The home screen also warns when an active simulation has no background keep-alive. Returning to the foreground rechecks location access; it does not automatically reconnect the developer simulation session. Temporary Core Location errors leave the update request running.
+
+Swiping WrapPin away in the App Switcher ends its simulation connection. A VPN that still shows Connected does not mean the simulation is still active, and closing WrapPin does not confirm that other apps have acquired a fresh real location. Reopen WrapPin to use recovery options when needed.
+
+The native engine checks the connection through subsequent coordinate writes, normally refreshed every four seconds. This timing and the 15-second write timeout apply while the process can run; they are not a guarantee that a suspended app detects a disconnection within 20 seconds.
 
 ## Anonymous usage statistics
 

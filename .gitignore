@@ -9,6 +9,9 @@ xcuserdata/
 DerivedData/
 build/
 
+# Rust build output
+Native/WrapPinPairingFFI/target/
+
 # Swift Package Manager
 .build/
 .swiftpm/xcode/package.xcworkspace/xcuserdata/

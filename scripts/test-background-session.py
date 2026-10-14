@@ -97,10 +97,43 @@ checks = r'''
         precondition(keepAlive.started)
         precondition(keepAlive.status == .locationUnavailable)
 
+        let stopsBeforeError = manager.stops
+        keepAlive.locationManager(manager, didFailWithError: CLError(code: .other))
+        precondition(keepAlive.status == .locationUnavailable)
+        precondition(keepAlive.started && manager.allowsBackgroundLocationUpdates)
+        precondition(manager.stops == stopsBeforeError)
+        keepAlive.locationManager(manager, didUpdateLocations: [CLLocation()])
+        precondition(keepAlive.status == .receivingUpdates)
+
+        keepAlive.reconcile()
+        precondition(manager.starts == 1) // No duplicate active update request.
+        manager.authorizationStatus = .denied
+        keepAlive.reconcile() // No authorization callback: reconcile must notice it.
+        precondition(!keepAlive.started && !manager.allowsBackgroundLocationUpdates)
+        precondition(keepAlive.status == .denied)
+        manager.authorizationStatus = .authorizedWhenInUse
+        keepAlive.reconcile()
+        precondition(keepAlive.started && manager.starts == 2)
+        CLLocationManager.enabled = false
+        manager.authorizationStatus = .denied
+        keepAlive.reconcile()
+        precondition(!keepAlive.started && keepAlive.status == .servicesDisabled)
+        CLLocationManager.enabled = true
+        manager.authorizationStatus = .authorizedWhenInUse
+        keepAlive.reconcile()
+        precondition(keepAlive.started && manager.starts == 3)
+
+        keepAlive.locationManager(manager, didFailWithError: CLError(code: .denied))
+        precondition(!keepAlive.started && !manager.allowsBackgroundLocationUpdates)
+        keepAlive.reconcile()
+        precondition(keepAlive.started && manager.starts == 4)
+
         keepAlive.stop()
         precondition(!keepAlive.started)
         precondition(!manager.allowsBackgroundLocationUpdates)
         precondition(keepAlive.status == .stopped)
+        keepAlive.reconcile()
+        precondition(!keepAlive.started && manager.starts == 4)
 
         for authorization: CLAuthorizationStatus in [.denied, .restricted] {
             let deniedManager = CLLocationManager()

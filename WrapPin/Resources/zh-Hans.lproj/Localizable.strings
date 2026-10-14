@@ -715,3 +715,9 @@
 "The VPN configuration changed. Close this page and try again." = "VPN 配置已发生变化。请关闭本页后重试。";
 "Could not start the built-in tunnel (%@). Check VPN approval and signing permissions, then try again." = "无法开启内置隧道（%@）。请检查 VPN 授权和签名权限后重试。";
 "iOS could not read or save the VPN configuration. Check VPN approval and the app and extension signing profiles, then try again." = "iOS 无法读取或保存 VPN 配置。请检查 VPN 授权，以及 App 和扩展的签名配置后重试。";
+
+/* Session interruption and bounded location writes */
+"The iPhone did not confirm the selected location in time." = "iPhone 未在规定时间内确认所选位置，请检查设备通道后重试。";
+"The iPhone did not confirm updating the location in time." = "iPhone 未在规定时间内确认位置更新，请检查设备通道后重试。";
+"This is the last location you set, not confirmation that it is still active." = "这是上次设置的位置，不代表当前仍在生效。";
+"Resuming the previous session…" = "正在继续上次的模拟…";

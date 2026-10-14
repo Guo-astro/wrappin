@@ -75,6 +75,12 @@ final class BackgroundLocationKeepAlive: NSObject, @preconcurrency CLLocationMan
         started = false
     }
 
+    /// Recheck an already requested keep-alive on foreground activation.
+    /// This never starts or reconnects a developer location session.
+    func reconcile() {
+        reconcileAuthorization()
+    }
+
     private func unavailable(_ status: BackgroundKeepAliveStatus) {
         manager.stopUpdatingLocation()
         manager.allowsBackgroundLocationUpdates = false
@@ -88,7 +94,6 @@ final class BackgroundLocationKeepAlive: NSObject, @preconcurrency CLLocationMan
             unavailable(.missingBackgroundMode)
             return
         }
-
         switch manager.authorizationStatus {
         case .notDetermined:
             status = .awaitingAuthorization
@@ -120,12 +125,12 @@ final class BackgroundLocationKeepAlive: NSObject, @preconcurrency CLLocationMan
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         guard requested else { return }
-        if (error as? CLError)?.code == .locationUnknown {
-            status = .locationUnavailable
-        } else if (error as? CLError)?.code == .denied {
+        if (error as? CLError)?.code == .denied {
             unavailable(CLLocationManager.locationServicesEnabled() ? .denied : .servicesDisabled)
         } else {
-            unavailable(.failed)
+            // Core Location may resume delivery after a transient error.
+            // Keep the update request and background permission in place.
+            status = .locationUnavailable
         }
     }
 }
