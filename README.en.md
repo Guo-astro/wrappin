@@ -17,6 +17,10 @@
 </p>
 
 <p align="center">
+  <strong>Current version:</strong>1.0.18 (Build 61) · <strong>Requires:</strong>iOS 27+
+</p>
+
+<p align="center">
   <a href="https://github.com/suversal/WrapPin/releases/latest">Download the latest release</a> ·
   <a href="Documentation/UserGuide.md">User guide</a> ·
   <a href="https://x.com/suversal">@suversal on X</a>

@@ -2,6 +2,34 @@
 
 All notable public changes to WrapPin are recorded here.
 
+## [1.0.18] - 2026-10-15
+
+### Fixed
+
+- Initial and active coordinate writes now have a 15-second timeout, preventing an unresponsive device from leaving Stop waiting indefinitely. An unconfirmed stop preserves the recovery entry.
+- Interrupted sessions retain the last location and route progress after coordinate-write or restore failures. The recovery entry appears immediately, allowing the user to continue simulation or restore the real location without restarting the app. An existing unconfirmed record also survives a failed connection retry or an attempt to start at a new place.
+- Temporary Core Location errors no longer stop background location updates. Returning to the foreground reconciles authorization and keep-alive state; the home screen warns when keep-alive is unavailable.
+
+### Added
+
+- Optional **Reduce background location indicator**, off by default. Only explicitly enabling it requests an upgrade to Always authorization; the indicator is hidden only while the preference is on and authorization is Always. Connection Health shows the authorization level and indicator state.
+
+### Improved
+
+- Clarified that the tunnel handoff list chooses which app to open and does not limit compatible software. Other correctly configured device-tunnel apps can be enabled manually.
+
+### Known limitations
+
+- Recovery is manual, with no automatic reconnection or guarantee of uninterrupted background connectivity. Force-quitting WrapPin ends the simulation connection even if the VPN remains connected.
+- Coordinate writes and location clearing each have a 15-second deadline. Stop can approach 30 seconds when a write completes near its deadline and clearing then times out, provided iOS allows the app to execute.
+- iOS controls the final indicator display and may periodically remind the user about background location use. Turning the preference off does not revoke Always authorization; it can be changed in system Settings. Keep-alive coordinates are neither saved nor uploaded.
+- The existing mobile-data limitation through Shadowrocket, Surge and Loon is unchanged; use Wi-Fi with these apps.
+
+### Tested
+
+- Both schemes passed Debug and Release builds, all eight check scripts passed, and all ten Rust unit tests passed. Both unsigned IPA files passed package identity, resource, architecture, extension and ZIP-integrity checks.
+- The maintainer reported that the main features passed physical-device testing with Build 60, without recording individual cases. Build 61 has the same feature code and has not itself been installed on a device.
+
 ## [1.0.17] - 2026-10-11
 
 ### Improved
