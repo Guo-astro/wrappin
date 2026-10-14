@@ -45,6 +45,8 @@ Tap **Stop & Restore** when you want iOS to return to the real location, then co
 
 ## Wi-Fi connection flow
 
+**Tunnel App** chooses the app WrapPin opens for tunnel setup; the list is not a list of all compatible apps. Other VPN or proxy apps can also be used if they provide a correctly configured device tunnel. Configure and enable their tunnel manually before returning to WrapPin. Compatibility depends on reaching the paired iPhone's device connection, not on the app appearing in this list.
+
 **Settings → Tunnel App** selects LocalDevVPN (the default), Shadowrocket, Surge or Loon. On Wi-Fi, WrapPin checks whether it can reach the paired iPhone and opens the selected app only if that connection fails. On mobile data, LocalDevVPN retains its original connect-and-return startup flow, so it still opens once; Shadowrocket, Surge and Loon are opened, and asked to turn on their VPN, only after the device connection cannot be established. WrapPin cannot inspect any of these apps' VPN switches directly.
 
 With Shadowrocket selected, WrapPin asks it to connect its VPN through `shadowrocket://connect`; return to WrapPin manually afterwards. Shadowrocket provides the device connection only when **Include Route 10.7.0.1/32** is turned on in its Settings, as described in [Shadowrocket setup](ShadowrocketIntegration.md). If it cannot connect over mobile data, use Wi-Fi. If Wi-Fi also fails the connection check, keep LocalDevVPN as the default.

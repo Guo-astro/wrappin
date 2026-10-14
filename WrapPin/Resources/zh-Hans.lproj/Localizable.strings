@@ -738,3 +738,9 @@
 "Hide While Active" = "运行时隐藏";
 "Show While Active" = "运行时显示";
 "The indicator status reflects WrapPin's requested behavior during background keep-alive. iOS controls its final appearance." = "指示器状态表示 WrapPin 在后台保持时请求的显示方式，最终显示由 iOS 决定。";
+
+/* Upstream acknowledgement in Settings */
+"WrapPin is based on earlier [Roam Control](https://github.com/seanhowarthdev/Roam-Control) source releases by Sean Howarth. Thank you for sharing the original project." = "WrapPin 基于 Sean Howarth 早期公开的 [Roam Control](https://github.com/seanhowarthdev/Roam-Control) 源码开发，感谢原作者的分享。";
+
+/* Tunnel handoff and compatibility */
+"This setting chooses which app WrapPin opens for tunnel setup; it does not limit which apps are compatible. Other VPN or proxy apps can also be used if they provide a correctly configured device tunnel. Enable their tunnel manually first." = "此设置用于选择自动跳转的应用，不限制可使用的代理软件。其他代理或 VPN 软件只要已正确配置兼容的设备隧道，也可手动开启后直接使用。";

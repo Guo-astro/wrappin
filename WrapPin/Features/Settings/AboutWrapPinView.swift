@@ -171,22 +171,12 @@ struct AboutWrapPinView: View {
     private var appSummary: some View {
         Section {
             VStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.blue, .cyan],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 74, height: 74)
-
-                    Image(systemName: "location.north.circle.fill")
-                        .font(.system(size: 38, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .accessibilityHidden(true)
-                }
+                Image("AppLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 74, height: 74)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .accessibilityHidden(true)
 
                 VStack(spacing: 5) {
                     Text("WrapPin")

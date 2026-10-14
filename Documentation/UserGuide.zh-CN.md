@@ -36,6 +36,8 @@ WrapPin 可以让 iPhone 暂时报告一个固定位置，或沿 Apple 地图规
 
 ## Wi-Fi 与蜂窝网络
 
+“隧道跳转应用”用于选择 WrapPin 自动打开哪个应用，列表不代表全部兼容软件。其他代理或 VPN 软件只要已正确配置兼容的设备隧道，也可手动开启后返回 WrapPin 使用。能否使用取决于是否能连接已配对 iPhone 的设备通道，而不是软件是否出现在列表中。
+
 可在“设置 → 隧道跳转应用”选择 LocalDevVPN（默认）、Shadowrocket、Surge 或 Loon。使用 Wi-Fi 时，WrapPin 会检查已配对 iPhone 的设备连接：能连通就不跳转，无法连通才打开所选应用。蜂窝网络下，LocalDevVPN 保留原有的建立隧道并返回流程，因此启动时仍会打开一次；Shadowrocket、Surge 和 Loon 则先检查设备连接，连不上时才打开应用并请求开启 VPN。WrapPin 不能直接读取这些应用的 VPN 开关状态。
 
 选择 Shadowrocket 时，WrapPin 通过 `shadowrocket://connect` 请求它开启 VPN，之后需要手动返回 WrapPin。Shadowrocket 需要按 [Shadowrocket 配置](ShadowrocketIntegration.zh-CN.md) 在“设置 → 其它”中开启“包含路由 10.7.0.1/32”，才能提供设备连接。蜂窝网络下无法连接时，请改用 Wi-Fi；若 Wi-Fi 下也无法通过连接检测，建议保持默认 LocalDevVPN。

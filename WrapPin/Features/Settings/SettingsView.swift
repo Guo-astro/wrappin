@@ -97,15 +97,19 @@ struct SettingsView: View {
                         }
                         .accessibilityHint("Selects the app to open when WrapPin cannot reach the paired iPhone.")
                     } footer: {
-                        switch appModel.tunnelHandoffApp {
-                        case .localDevVPN:
-                            Text("On Wi-Fi, WrapPin opens LocalDevVPN if the paired iPhone is unreachable. On mobile data, it uses LocalDevVPN's connect-and-return flow before continuing. If it does not return automatically, check its tunnel and come back to WrapPin.")
-                        case .shadowrocket:
-                            Text("WrapPin asks Shadowrocket to connect its VPN only when it cannot find the paired iPhone's device connection. Shadowrocket requires Include Route 10.7.0.1/32 turned on in its Settings. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Shadowrocket's VPN switch.")
-                        case .surge:
-                            Text("WrapPin asks Surge to start its selected configuration only when it cannot find the paired iPhone's device connection. Surge 5.23+ requires 10.7.0.1/32 in tun-included-routes and 10.7.0.1 = reflect in IP Rewrite. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Surge's VPN switch.")
-                        case .loon:
-                            Text("WrapPin asks Loon to turn on its VPN only when it cannot find the paired iPhone's device connection. Loon build 1007+ requires include-tun = 10.7.0.1/32 and an enabled plugin with 10.7.0.1 = reflect in IP Rewrite. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Loon's VPN switch.")
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("This setting chooses which app WrapPin opens for tunnel setup; it does not limit which apps are compatible. Other VPN or proxy apps can also be used if they provide a correctly configured device tunnel. Enable their tunnel manually first.")
+
+                            switch appModel.tunnelHandoffApp {
+                            case .localDevVPN:
+                                Text("On Wi-Fi, WrapPin opens LocalDevVPN if the paired iPhone is unreachable. On mobile data, it uses LocalDevVPN's connect-and-return flow before continuing. If it does not return automatically, check its tunnel and come back to WrapPin.")
+                            case .shadowrocket:
+                                Text("WrapPin asks Shadowrocket to connect its VPN only when it cannot find the paired iPhone's device connection. Shadowrocket requires Include Route 10.7.0.1/32 turned on in its Settings. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Shadowrocket's VPN switch.")
+                            case .surge:
+                                Text("WrapPin asks Surge to start its selected configuration only when it cannot find the paired iPhone's device connection. Surge 5.23+ requires 10.7.0.1/32 in tun-included-routes and 10.7.0.1 = reflect in IP Rewrite. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Surge's VPN switch.")
+                            case .loon:
+                                Text("WrapPin asks Loon to turn on its VPN only when it cannot find the paired iPhone's device connection. Loon build 1007+ requires include-tun = 10.7.0.1/32 and an enabled plugin with 10.7.0.1 = reflect in IP Rewrite. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Loon's VPN switch.")
+                            }
                         }
                     }
                 }
@@ -128,7 +132,7 @@ struct SettingsView: View {
                     Text("Optional and off by default. Helps estimate activity from participating installations. Locations, searches and pairing data are never included.")
                 }
 
-                Section("About") {
+                Section {
                     NavigationLink {
                         AboutWrapPinView()
                     } label: {
@@ -157,6 +161,10 @@ struct SettingsView: View {
                         settingsRowLabel("Replay Introduction", symbol: "sparkles")
                     }
                     .foregroundStyle(.primary)
+                } header: {
+                    Text("About")
+                } footer: {
+                    Text("WrapPin is based on earlier [Roam Control](https://github.com/seanhowarthdev/Roam-Control) source releases by Sean Howarth. Thank you for sharing the original project.")
                 }
 
                 Section {
