@@ -2,9 +2,22 @@
 
 ## Active distribution tracks
 
-- Public release: `v1.0.17` Build 55, with both editions attached to the same GitHub Release.
-- Standard edition (SideStore and other self-signing): `WrapPin-Standard-1.0.17-build55-unsigned.ipa`, bundle ID `com.suversal.wrappin`.
-- Tunnel edition (signing profiles with Packet Tunnel permission): `WrapPin-Tunnel-1.0.17-build55-unsigned.ipa`, bundle ID `com.suversal.wrappin.selfsigned`, extension `com.suversal.wrappin.selfsigned.tunnel`.
+- Public release: `v1.0.18` Build 61, with both editions attached to the same GitHub Release.
+- Standard edition (SideStore and other self-signing): `WrapPin-Standard-1.0.18-build61-unsigned.ipa`, bundle ID `com.suversal.wrappin`.
+- Tunnel edition (signing profiles with Packet Tunnel permission): `WrapPin-Tunnel-1.0.18-build61-unsigned.ipa`, bundle ID `com.suversal.wrappin.selfsigned`, extension `com.suversal.wrappin.selfsigned.tunnel`.
+
+## 1.0.18 (Build 61)
+
+- Created: 15 October 2026 (Asia/Shanghai) with Xcode 27.0 (`27A266a`) using `scripts/package-ipa.sh all`, from commit `cd7a9ddca43320715b48a85e6c7832b1c79644a4`. Subsequent release-documentation changes do not alter the packaged source.
+- Standard IPA: `WrapPin-Standard-1.0.18-build61-unsigned.ipa`; SHA-256 `a897774a0dee14f8c2c7a24a9c97eaa041d281c441f116d1613f5164d92aaa57`; bundle ID `com.suversal.wrappin`; no Packet Tunnel extension or NetworkExtension linkage.
+- Tunnel IPA: `WrapPin-Tunnel-1.0.18-build61-unsigned.ipa`; SHA-256 `62e66c1036d1046532e30ed1d3e604f06403d8f01afa85988ad40e1d5d037ff2`; bundle ID `com.suversal.wrappin.selfsigned`; contains `WrapPinTunnel.appex` with ID `com.suversal.wrappin.selfsigned.tunnel`.
+- Both: optimized unsigned Release Archive, arm64 iPhone, iOS 27+. No signing profiles are embedded. No TelemetryDeck identifiers were configured for this build, so it sends no usage statistics.
+- Changes: bounded coordinate writes, recovery records and an immediate recovery entry after unconfirmed interruption or stop, background keep-alive error handling and foreground reconciliation, an optional background location indicator preference, and clarified tunnel handoff guidance.
+- Verification: all eight check scripts, all ten Rust unit tests, both schemes in Debug and Release, both Release archives, ZIP integrity, identifiers, versions, resources, architectures and extension presence or absence passed. The maintainer reported that the main features passed physical-device testing with Build 60, without recording individual cases. Build 61 has the same feature code and has not itself been installed on a device.
+- Known issues: recovery is manual; background continuity is not guaranteed; writes and clearing each have a 15-second deadline, so Stop can approach 30 seconds when a write completes near its deadline and clearing then times out. iOS controls the final indicator display and may remind users about background location. The existing mobile-data limitation of Shadowrocket, Surge and Loon is unchanged. The quiet archive command printed `error: the following command failed with exit code 0 but produced no further output` for a SwiftCompile step before completing; explicit builds and archive-to-package byte checks passed. Builds 56–60 were local test packages and were not published.
+- Publication: GitHub Release `v1.0.18`.
+
+See the [English](../Documentation/Release-1.0.18.md) and [Chinese](../Documentation/Release-1.0.18.zh-CN.md) build notes for details.
 
 ## 1.0.17 (Build 55)
 
