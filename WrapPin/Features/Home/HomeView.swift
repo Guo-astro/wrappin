@@ -372,6 +372,9 @@ struct HomeView: View {
                         ) ?? .wgs84,
                         onCoordinateModeChange: { mode in
                             fixedCoordinateMode = mode
+                            if let target = mapModel.selectedLocation {
+                                appModel.rememberManualCoordinateMode(mode, for: target)
+                            }
                             guard
                                 let target = mapModel.selectedLocation,
                                 case .active(let activeTarget) = appModel.deviceSession.phase,
@@ -590,7 +593,7 @@ struct HomeView: View {
                 {
                     fixedCoordinateMode = activeMode
                 } else {
-                    fixedCoordinateMode = FixedCoordinateMode.recommended(for: selectedLocation)
+                    fixedCoordinateMode = appModel.coordinateMode(for: selectedLocation)
                 }
             }
             guard !walkingSimulation.locksDestination else { return }
