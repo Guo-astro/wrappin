@@ -69,6 +69,10 @@ final class AppModel {
         case .shadowrocket: URL(string: "https://apps.apple.com/app/shadowrocket/id932747118")!
         case .surge: URL(string: "https://apps.apple.com/app/surge-5/id1442620678")!
         case .loon: URL(string: "https://apps.apple.com/app/loon/id1373567447")!
+        case .stash: URL(string: "https://apps.apple.com/app/stash-rule-based-proxy/id1596063349")!
+        case .egern: URL(string: "https://apps.apple.com/app/egern/id1616105820")!
+        case .quantumultX: URL(string: "https://apps.apple.com/app/quantumult-x/id1443988620")!
+        case .singBox: URL(string: "https://apps.apple.com/app/sing-box-mt/id6785326793")!
         }
     }
 

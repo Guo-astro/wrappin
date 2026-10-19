@@ -5,6 +5,10 @@ enum TunnelHandoffApp: String, CaseIterable, Identifiable {
     case shadowrocket
     case surge
     case loon
+    case stash
+    case egern
+    case quantumultX
+    case singBox
 
     var id: Self { self }
 
@@ -14,6 +18,10 @@ enum TunnelHandoffApp: String, CaseIterable, Identifiable {
         case .shadowrocket: "Shadowrocket"
         case .surge: "Surge"
         case .loon: "Loon"
+        case .stash: "Stash"
+        case .egern: "Egern"
+        case .quantumultX: "Quantumult X"
+        case .singBox: "sing-box"
         }
     }
 
@@ -24,16 +32,24 @@ enum TunnelHandoffApp: String, CaseIterable, Identifiable {
         case .shadowrocket: URL(string: "shadowrocket://")!
         case .surge: URL(string: "surge://")!
         case .loon: URL(string: "loon://")!
+        case .stash: URL(string: "stash://")!
+        case .egern: URL(string: "egern:/")!
+        case .quantumultX: URL(string: "quantumult-x:///")!
+        case .singBox: URL(string: "sing-box://")!
         }
     }
 
-    // LocalDevVPN returns through a callback; Shadowrocket, Surge and Loon each have a start action.
+    // LocalDevVPN returns through a callback; Shadowrocket, Surge, Loon, Stash and Egern
+    // each have a start action. Quantumult X and sing-box document none, so they only open.
     var launchURL: URL {
         switch self {
         case .localDevVPN: URL(string: "localdevvpn://enable?scheme=\(BuildEdition.callbackScheme)")!
         case .shadowrocket: URL(string: "shadowrocket://connect")!
         case .surge: URL(string: "surge:///start")!
         case .loon: URL(string: "loon://on")!
+        case .stash: URL(string: "stash://start")!
+        case .egern: URL(string: "egern:/start")!
+        case .quantumultX, .singBox: appURL
         }
     }
 }

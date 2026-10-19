@@ -38,13 +38,15 @@ WrapPin 可以让 iPhone 暂时报告一个固定位置，或沿 Apple 地图规
 
 “隧道跳转应用”用于选择 WrapPin 自动打开哪个应用，列表不代表全部兼容软件。其他代理或 VPN 软件只要已正确配置兼容的设备隧道，也可手动开启后返回 WrapPin 使用。能否使用取决于是否能连接已配对 iPhone 的设备通道，而不是软件是否出现在列表中。
 
-可在“设置 → 隧道跳转应用”选择 LocalDevVPN（默认）、Shadowrocket、Surge 或 Loon。使用 Wi-Fi 时，WrapPin 会检查已配对 iPhone 的设备连接：能连通就不跳转，无法连通才打开所选应用。蜂窝网络下，LocalDevVPN 保留原有的建立隧道并返回流程，因此启动时仍会打开一次；Shadowrocket、Surge 和 Loon 则先检查设备连接，连不上时才打开应用并请求开启 VPN。WrapPin 不能直接读取这些应用的 VPN 开关状态。
+可在“设置 → 隧道跳转应用”选择 LocalDevVPN（默认）、Shadowrocket、Surge、Loon、Stash、Egern、Quantumult X 或 sing-box。使用 Wi-Fi 时，WrapPin 会检查已配对 iPhone 的设备连接：能连通就不跳转，无法连通才打开所选应用。蜂窝网络下，LocalDevVPN 保留原有的建立隧道并返回流程，因此启动时仍会打开一次；其他应用则先检查设备连接，连不上时才打开应用；有开启链接的应用会同时请求开启 VPN。WrapPin 不能直接读取这些应用的 VPN 开关状态。
 
 选择 Shadowrocket 时，WrapPin 通过 `shadowrocket://connect` 请求它开启 VPN，之后需要手动返回 WrapPin。Shadowrocket 需要按 [Shadowrocket 配置](ShadowrocketIntegration.zh-CN.md) 在“设置 → 其它”中开启“包含路由 10.7.0.1/32”，才能提供设备连接。蜂窝网络下无法连接时，请改用 Wi-Fi；若 Wi-Fi 下也无法通过连接检测，建议保持默认 LocalDevVPN。
 
 选择 Surge 时，WrapPin 通过 `surge:///start` 请求 Surge 启动当前配置，之后需要手动返回 WrapPin。Surge 需要 iOS 版 5.23.0 或更高版本，并按 [Surge iOS 配置](SurgeIntegration.zh-CN.md) 加入路由和 IP Rewrite 设置，才能提供设备连接。蜂窝网络下无法连接时，请改用 Wi-Fi。
 
 选择 Loon 时，WrapPin 通过 `loon://on` 请求 Loon 开启 VPN，之后需要手动返回 WrapPin。Loon 需要 Build 1007 或更高版本，并按 [Loon 配置](LoonIntegration.zh-CN.md) 加入 `include-tun` 和 IP Rewrite 设置，才能提供设备连接。蜂窝网络下无法连接时，请改用 Wi-Fi。
+
+选择 Stash 或 Egern 时，WrapPin 分别通过 `stash://start`、`egern:/start` 请求开启 VPN，之后需要手动返回 WrapPin。选择 Quantumult X 或 sing-box 时，它们没有开启 VPN 的链接，WrapPin 只会打开应用，请手动开启后返回。这四个应用都需要在各自配置中把发往 `10.7.0.1` 的连接回送到本机，例如 sing-box 1.12 及以上版本需要在 TUN 入站中设置 `loopback_address: 10.7.0.1`；配置后可在“设置 → 连接检测”中确认设备连接是否可用。
 
 使用 Wi-Fi 时，请确认所选应用的兼容设备隧道已连接。默认使用 LocalDevVPN 时，如果仍然找不到本机，先关闭再开启一次隧道，然后轻点“重试”。连接 Wi-Fi 时不要误选“我正在使用蜂窝网络”。
 
@@ -55,7 +57,7 @@ WrapPin 可以让 iPhone 暂时报告一个固定位置，或沿 Apple 地图规
 3. 回到 WrapPin，等待它自动发现本机；必要时轻点“继续”。
 4. 安全连接建立后，按提示重新开启蜂窝网络。
 
-临时关闭蜂窝网络只用于 LocalDevVPN 建立连接。模拟定位开始后，可以恢复正常使用移动数据。Shadowrocket、Surge 和 Loon 不使用这套临时关闭蜂窝数据的引导；如果它们在蜂窝网络下无法连接，请切换到 Wi-Fi 后重试。
+临时关闭蜂窝网络只用于 LocalDevVPN 建立连接。模拟定位开始后，可以恢复正常使用移动数据。LocalDevVPN 以外的应用不使用这套临时关闭蜂窝数据的引导；如果它们在蜂窝网络下无法连接，请切换到 Wi-Fi 后重试。
 
 ## 模拟步行路线
 

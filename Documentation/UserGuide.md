@@ -47,13 +47,15 @@ Tap **Stop & Restore** when you want iOS to return to the real location, then co
 
 **Tunnel App** chooses the app WrapPin opens for tunnel setup; the list is not a list of all compatible apps. Other VPN or proxy apps can also be used if they provide a correctly configured device tunnel. Configure and enable their tunnel manually before returning to WrapPin. Compatibility depends on reaching the paired iPhone's device connection, not on the app appearing in this list.
 
-**Settings → Tunnel App** selects LocalDevVPN (the default), Shadowrocket, Surge or Loon. On Wi-Fi, WrapPin checks whether it can reach the paired iPhone and opens the selected app only if that connection fails. On mobile data, LocalDevVPN retains its original connect-and-return startup flow, so it still opens once; Shadowrocket, Surge and Loon are opened, and asked to turn on their VPN, only after the device connection cannot be established. WrapPin cannot inspect any of these apps' VPN switches directly.
+**Settings → Tunnel App** selects LocalDevVPN (the default), Shadowrocket, Surge, Loon, Stash, Egern, Quantumult X or sing-box. On Wi-Fi, WrapPin checks whether it can reach the paired iPhone and opens the selected app only if that connection fails. On mobile data, LocalDevVPN retains its original connect-and-return startup flow, so it still opens once; the other apps are opened only after the device connection cannot be established, and those with a start link are also asked to turn on their VPN. WrapPin cannot inspect any of these apps' VPN switches directly.
 
 With Shadowrocket selected, WrapPin asks it to connect its VPN through `shadowrocket://connect`; return to WrapPin manually afterwards. Shadowrocket provides the device connection only when **Include Route 10.7.0.1/32** is turned on in its Settings, as described in [Shadowrocket setup](ShadowrocketIntegration.md). If it cannot connect over mobile data, use Wi-Fi. If Wi-Fi also fails the connection check, keep LocalDevVPN as the default.
 
 With Surge selected, WrapPin asks Surge to start its selected configuration through `surge:///start`; return to WrapPin manually afterwards. Surge provides the device connection only on Surge iOS 5.23.0 or later with the route and IP Rewrite settings in [Surge iOS setup](SurgeIntegration.md). If it cannot connect over mobile data, use Wi-Fi.
 
 With Loon selected, WrapPin asks Loon to turn on its VPN through `loon://on`; return to WrapPin manually afterwards. Loon provides the device connection only on build 1007 or later with the `include-tun` and IP Rewrite settings in [Loon setup](LoonIntegration.md). If it cannot connect over mobile data, use Wi-Fi.
+
+With Stash or Egern selected, WrapPin asks the app to turn on its VPN through `stash://start` or `egern:/start`; return to WrapPin manually afterwards. Quantumult X and sing-box have no link that turns on their VPN, so WrapPin only opens them; turn the VPN on yourself and return. All four must be configured to send connections to `10.7.0.1` back to this iPhone; for example, sing-box 1.12 or later needs `loopback_address: 10.7.0.1` in its TUN inbound. After setup, use **Settings → Connection Health** to confirm the device connection.
 
 When Wi-Fi is connected, WrapPin looks for the paired iPhone through a compatible device tunnel immediately. LocalDevVPN remains the supported default.
 
@@ -74,7 +76,7 @@ When the iPhone is using 4G or 5G with LocalDevVPN:
 5. If automatic detection does not continue, tap **Continue** as the manual backup.
 6. When **Turn Mobile Data Back On** appears, restore mobile data and tap **Done**.
 
-Only LocalDevVPN startup needs this temporary change. After the secure location session is active, it can continue while mobile data is back on. Shadowrocket, Surge and Loon do not use this mobile-data-off guidance; if they cannot connect over mobile data, use Wi-Fi instead.
+Only LocalDevVPN startup needs this temporary change. After the secure location session is active, it can continue while mobile data is back on. Apps other than LocalDevVPN do not use this mobile-data-off guidance; if they cannot connect over mobile data, use Wi-Fi instead.
 
 ## Walking routes
 

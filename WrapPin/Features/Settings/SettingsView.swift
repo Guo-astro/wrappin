@@ -109,6 +109,18 @@ struct SettingsView: View {
                                 Text("WrapPin asks Surge to start its selected configuration only when it cannot find the paired iPhone's device connection. Surge 5.23+ requires 10.7.0.1/32 in tun-included-routes and 10.7.0.1 = reflect in IP Rewrite. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Surge's VPN switch.")
                             case .loon:
                                 Text("WrapPin asks Loon to turn on its VPN only when it cannot find the paired iPhone's device connection. Loon build 1007+ requires include-tun = 10.7.0.1/32 and an enabled plugin with 10.7.0.1 = reflect in IP Rewrite. If mobile data fails, use Wi-Fi. WrapPin cannot inspect Loon's VPN switch.")
+                            case .stash, .egern:
+                                Text(String(
+                                    format: NSLocalizedString(
+                                        "WrapPin asks %@ to turn on its VPN only when it cannot find the paired iPhone's device connection. Its configuration must send connections to 10.7.0.1 back to this iPhone; check the result in Connection Health. If mobile data fails, use Wi-Fi. WrapPin cannot inspect its VPN switch.",
+                                        comment: ""
+                                    ),
+                                    appModel.tunnelHandoffApp.title
+                                ))
+                            case .quantumultX:
+                                Text("WrapPin opens Quantumult X when it cannot find the paired iPhone's device connection. Quantumult X has no link that turns on its VPN, so turn it on yourself and return to WrapPin. Its configuration must send connections to 10.7.0.1 back to this iPhone; check the result in Connection Health. If mobile data fails, use Wi-Fi.")
+                            case .singBox:
+                                Text("WrapPin opens sing-box when it cannot find the paired iPhone's device connection. sing-box has no link that turns on its VPN, so turn it on yourself and return to WrapPin. sing-box 1.12+ requires loopback_address set to 10.7.0.1 in its TUN inbound. If mobile data fails, use Wi-Fi.")
                             }
                         }
                     }
