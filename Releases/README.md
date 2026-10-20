@@ -2,9 +2,22 @@
 
 ## Active distribution tracks
 
-- Public release: `v1.0.18` Build 61, with both editions attached to the same GitHub Release.
-- Standard edition (SideStore and other self-signing): `WrapPin-Standard-1.0.18-build61-unsigned.ipa`, bundle ID `com.suversal.wrappin`.
-- Tunnel edition (signing profiles with Packet Tunnel permission): `WrapPin-Tunnel-1.0.18-build61-unsigned.ipa`, bundle ID `com.suversal.wrappin.selfsigned`, extension `com.suversal.wrappin.selfsigned.tunnel`.
+- Public release: `v1.0.19` Build 63, with both editions attached to the same GitHub Release.
+- Standard edition (SideStore and other self-signing): `WrapPin-Standard-1.0.19-build63-unsigned.ipa`, bundle ID `com.suversal.wrappin`.
+- Tunnel edition (signing profiles with Packet Tunnel permission): `WrapPin-Tunnel-1.0.19-build63-unsigned.ipa`, bundle ID `com.suversal.wrappin.selfsigned`, extension `com.suversal.wrappin.selfsigned.tunnel`.
+
+## 1.0.19 (Build 63)
+
+- Created: 20 October 2026 (Asia/Shanghai) with Xcode 27.0 (`27A266a`) using `scripts/package-ipa.sh all`, from commit `81c70a4b8cfe33e412a90b22d9d06cdf5a594795`. Subsequent release-documentation changes do not alter the packaged source.
+- Standard IPA: `WrapPin-Standard-1.0.19-build63-unsigned.ipa`; SHA-256 `09cb9d4dc9754a5f41ebc55d6dd325356dc38006126ff9e3683d90330e5dcf10`; bundle ID `com.suversal.wrappin`; no Packet Tunnel extension or NetworkExtension linkage.
+- Tunnel IPA: `WrapPin-Tunnel-1.0.19-build63-unsigned.ipa`; SHA-256 `b47260db83b7bcbbe1b67554856209ea1984b0147803e74b766d0572b284db76`; bundle ID `com.suversal.wrappin.selfsigned`; contains `WrapPinTunnel.appex` with ID `com.suversal.wrappin.selfsigned.tunnel`.
+- Both: optimized unsigned Release Archive, arm64 iPhone, iOS 27+. No signing profiles are embedded. No TelemetryDeck identifiers were configured for this build, so it sends no usage statistics.
+- Changes: App Shortcuts to simulate a favourite and to stop and restore the real location, with a Settings guide; Stash, Egern, Quantumult X and sing-box tunnel handoff apps; coordinate mode memory.
+- Verification: all eight check scripts, all ten Rust unit tests, both schemes in Debug and Release, both Release archives, ZIP integrity, identifiers, versions, App Shortcuts metadata and extension presence or absence passed. The maintainer reported that the 1.0.18 Build 62 test package, with the same feature code, worked on a physical device, including both shortcuts, without recording individual cases. Build 63 has not itself been installed on a device.
+- Known issues: shortcuts do not start while an interrupted simulation is pending, a route simulation is running, or setup and pairing are incomplete; recovery remains manual. The mobile-data limitation applies to third-party tunnel apps. The quiet archive command printed `error: the following command failed with exit code 0 but produced no further output` for a SwiftCompile step before completing; explicit builds passed. Build 62 was a local test package and was not published.
+- Publication: GitHub Release `v1.0.19`.
+
+See the [English](../Documentation/Release-1.0.19.md) and [Chinese](../Documentation/Release-1.0.19.zh-CN.md) build notes for details.
 
 ## 1.0.18 (Build 61)
 
