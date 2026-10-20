@@ -47,13 +47,15 @@ Tap **Stop & Restore** when you want iOS to return to the real location, then co
 
 **Tunnel App** chooses the app WrapPin opens for tunnel setup; the list is not a list of all compatible apps. Other VPN or proxy apps can also be used if they provide a correctly configured device tunnel. Configure and enable their tunnel manually before returning to WrapPin. Compatibility depends on reaching the paired iPhone's device connection, not on the app appearing in this list.
 
-**Settings → Tunnel App** selects LocalDevVPN (the default), Shadowrocket, Surge or Loon. On Wi-Fi, WrapPin checks whether it can reach the paired iPhone and opens the selected app only if that connection fails. On mobile data, LocalDevVPN retains its original connect-and-return startup flow, so it still opens once; Shadowrocket, Surge and Loon are opened, and asked to turn on their VPN, only after the device connection cannot be established. WrapPin cannot inspect any of these apps' VPN switches directly.
+**Settings → Tunnel App** selects LocalDevVPN (the default), Shadowrocket, Surge, Loon, Stash, Egern, Quantumult X or sing-box. On Wi-Fi, WrapPin checks whether it can reach the paired iPhone and opens the selected app only if that connection fails. On mobile data, LocalDevVPN retains its original connect-and-return startup flow, so it still opens once; the other apps are opened only after the device connection cannot be established, and those with a start link are also asked to turn on their VPN. WrapPin cannot inspect any of these apps' VPN switches directly.
 
 With Shadowrocket selected, WrapPin asks it to connect its VPN through `shadowrocket://connect`; return to WrapPin manually afterwards. Shadowrocket provides the device connection only when **Include Route 10.7.0.1/32** is turned on in its Settings, as described in [Shadowrocket setup](ShadowrocketIntegration.md). If it cannot connect over mobile data, use Wi-Fi. If Wi-Fi also fails the connection check, keep LocalDevVPN as the default.
 
 With Surge selected, WrapPin asks Surge to start its selected configuration through `surge:///start`; return to WrapPin manually afterwards. Surge provides the device connection only on Surge iOS 5.23.0 or later with the route and IP Rewrite settings in [Surge iOS setup](SurgeIntegration.md). If it cannot connect over mobile data, use Wi-Fi.
 
 With Loon selected, WrapPin asks Loon to turn on its VPN through `loon://on`; return to WrapPin manually afterwards. Loon provides the device connection only on build 1007 or later with the `include-tun` and IP Rewrite settings in [Loon setup](LoonIntegration.md). If it cannot connect over mobile data, use Wi-Fi.
+
+With Stash or Egern selected, WrapPin asks the app to turn on its VPN through `stash://start` or `egern:/start`; return to WrapPin manually afterwards. Quantumult X and sing-box have no link that turns on their VPN, so WrapPin only opens them; turn the VPN on yourself and return. All four must be configured to send connections to `10.7.0.1` back to this iPhone; for example, sing-box 1.12 or later needs `loopback_address: 10.7.0.1` in its TUN inbound. After setup, use **Settings → Connection Health** to confirm the device connection.
 
 When Wi-Fi is connected, WrapPin looks for the paired iPhone through a compatible device tunnel immediately. LocalDevVPN remains the supported default.
 
@@ -74,7 +76,7 @@ When the iPhone is using 4G or 5G with LocalDevVPN:
 5. If automatic detection does not continue, tap **Continue** as the manual backup.
 6. When **Turn Mobile Data Back On** appears, restore mobile data and tap **Done**.
 
-Only LocalDevVPN startup needs this temporary change. After the secure location session is active, it can continue while mobile data is back on. Shadowrocket, Surge and Loon do not use this mobile-data-off guidance; if they cannot connect over mobile data, use Wi-Fi instead.
+Only LocalDevVPN startup needs this temporary change. After the secure location session is active, it can continue while mobile data is back on. Apps other than LocalDevVPN do not use this mobile-data-off guidance; if they cannot connect over mobile data, use Wi-Fi instead.
 
 ## Walking routes
 
@@ -157,6 +159,17 @@ When enabled, WrapPin reports only a small fixed list of activity counts: the ap
 A random installation identifier is stored in local app storage and irreversibly hashed before sending. No per-launch session identifier is sent. Turning sharing off stops future reporting immediately and removes the local identifier, but it cannot withdraw anonymous events already received by TelemetryDeck. TelemetryDeck says it does not store IP addresses and may retain anonymous events for roughly 7–10 years without guaranteeing an exact deletion date. Counts therefore describe participating installations rather than every installation.
 
 Open **Settings → Privacy → What Is Shared** for the same disclosure inside the app. The complete policy is in [Privacy](Privacy.md).
+
+## Shortcuts
+
+WrapPin adds two ready-made shortcuts to the Shortcuts app; nothing needs to be installed. **Settings → Shortcuts** explains them and opens WrapPin's page in the Shortcuts app.
+
+- **Simulate Favourite**: choose a saved favourite when it runs. WrapPin opens and starts simulating that place with the coordinate mode last used there. The shortcut only starts the request; follow the connection progress in WrapPin.
+- **Restore Real Location**: stops the running simulation, or restores the real location after an interrupted one, then waits for the device to confirm before reporting the result.
+
+Pair the iPhone and save at least one favourite first. WrapPin comes to the foreground while a shortcut runs and may open the selected tunnel app if the device connection is unavailable. If a simulation was interrupted, Simulate Favourite asks you to choose restore or continue in WrapPin first and never resolves it on its own; a running route simulation must also be stopped in WrapPin first.
+
+In the Shortcuts app, **Automation** can run a WrapPin action from a personal automation such as Arrive, Leave or Time of Day. With Siri, say “Simulate a favourite with WrapPin” or “Restore my real location with WrapPin”; for the Tunnel edition, use the name WrapPin Tunnel.
 
 ## Favourites, history and reset
 

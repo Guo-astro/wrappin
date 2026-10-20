@@ -34,7 +34,8 @@ python3 scripts/test-background-session.py # 后台保活生命周期（用假�
 # 五个 Swift 检查需要与对应的生产源文件一起编译：
 xcrun swiftc -parse-as-library scripts/check-fixed-coordinate-mode.swift \
   WrapPin/Services/FixedCoordinateMode.swift WrapPin/Models/LocationTarget.swift \
-  WrapPin/Models/SessionRecoveryRecord.swift -o /tmp/check && /tmp/check
+  WrapPin/Models/SessionRecoveryRecord.swift WrapPin/Models/CoordinateModeMemory.swift \
+  -o /tmp/check && /tmp/check
 xcrun swiftc -parse-as-library scripts/test-route-recovery.swift \
   WrapPin/Models/SessionRecoveryRecord.swift -o /tmp/check && /tmp/check
 xcrun swiftc -parse-as-library scripts/test-session-recovery-policy.swift \

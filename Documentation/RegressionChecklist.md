@@ -45,6 +45,14 @@ Use this checklist before packaging an IPA or declaring a development build stab
 - [ ] Clear Favourites and Clear History each require confirmation and affect only their own list.
 - [ ] Choosing a saved place closes the list and selects it on the map.
 - [ ] Resume Last Location works and its dismissal remains dismissed.
+- [ ] Choosing a saved place uses the coordinate mode last used there; a new place within 100 km of the last manual change uses that manual choice. Reset WrapPin forgets both.
+
+### Shortcuts (physical device required)
+
+- [ ] Settings → Shortcuts opens the guide, and its Shortcuts button opens WrapPin's page in the Shortcuts app with both shortcuts listed. Check this with a SideStore-installed Standard build too.
+- [ ] Simulate Favourite lists current favourites, opens WrapPin and starts the chosen place with its remembered coordinate mode, including from a fully closed app.
+- [ ] Stop and Restore Real Location reports success only after the real location is restored, restores after an interrupted session, and reports when nothing is running.
+- [ ] Not set up, not paired, a deleted favourite, a running route, a pending interrupted session or another location action shows a reason and changes nothing.
 
 ## Fixed location on Wi-Fi
 
@@ -73,8 +81,8 @@ Use this checklist before packaging an IPA or declaring a development build stab
 
 ### Tunnel app handoff (new branch; physical device required)
 
-- [ ] LocalDevVPN is the default; choosing Shadowrocket, Surge or Loon persists across launch, and reset restores the default.
-- [ ] On Wi-Fi, a currently reachable paired device causes no handoff and an unreachable one opens the selected app. On mobile data, LocalDevVPN keeps its original connect-and-return flow; Shadowrocket is asked to connect its VPN through `shadowrocket://connect`, Surge is asked to start its selected configuration through `surge:///start`, and Loon is asked to turn on its VPN through `loon://on`.
+- [ ] LocalDevVPN is the default; choosing Shadowrocket, Surge, Loon, Stash, Egern, Quantumult X or sing-box persists across launch, and reset restores the default.
+- [ ] On Wi-Fi, a currently reachable paired device causes no handoff and an unreachable one opens the selected app. On mobile data, LocalDevVPN keeps its original connect-and-return flow; Shadowrocket is asked to connect its VPN through `shadowrocket://connect`, Surge is asked to start its selected configuration through `surge:///start`, and Loon is asked to turn on its VPN through `loon://on`. Stash and Egern are opened with `stash://start` and `egern:/start`; Quantumult X and sing-box are only opened, and their tunnel is turned on manually.
 - [ ] After a successful session, stopping and starting again rechecks reachability on Wi-Fi. LocalDevVPN still opens once per mobile-data startup.
 - [ ] Shadowrocket, Surge or Loon on mobile data recommends switching to Wi-Fi after connection failure and never shows the LocalDevVPN mobile-data-off step; LocalDevVPN guidance remains unchanged.
 - [ ] Returning after manually enabling a compatible tunnel resumes discovery; a missing or unsupported app-link scheme shows an error and the selected app's store link.

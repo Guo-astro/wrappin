@@ -1,3 +1,4 @@
+import AppIntents
 import Foundation
 import Observation
 
@@ -8,6 +9,7 @@ final class AppModel {
     private static let favouritesKey = "favouriteLocations"
     private static let hasSeenFavouriteReorderHintKey = "hasSeenFavouriteReorderHint"
     private static let historyKey = "locationHistory"
+    private static let coordinateModeMemoryKey = "coordinateModeMemory"
     private static let appearanceKey = "appAppearance"
     private static let mapDisplayStyleKey = "mapDisplayStyle"
     private static let tunnelHandoffAppKey = "tunnelHandoffApp"
@@ -36,6 +38,8 @@ final class AppModel {
     private(set) var isRestoringInterruptedSession = false
     private(set) var interruptedSessionError: String?
     private(set) var isStartingLocationSession = false
+    // Set by App Shortcuts and performed by HomeView with the same code as its buttons.
+    var shortcutRequest: ShortcutRequest?
 
     private var activeSessionRecovery: SessionRecoveryRecord?
     private var pendingSessionRecovery: SessionRecoveryRecord?
@@ -45,6 +49,11 @@ final class AppModel {
     private var restorationWasCancelled = false
     private var isStoppingLocationSessionForRestoration = false
     private var pendingSessionAnalyticsEvent: UsageAnalyticsEvent?
+    private var coordinateModeMemory: CoordinateModeMemory
+
+    var isRunningRouteSession: Bool {
+        activeSessionRecovery?.isRoute == true
+    }
 
     var activeFixedCoordinateMode: FixedCoordinateMode? {
         guard
@@ -67,6 +76,10 @@ final class AppModel {
         case .shadowrocket: URL(string: "https://apps.apple.com/app/shadowrocket/id932747118")!
         case .surge: URL(string: "https://apps.apple.com/app/surge-5/id1442620678")!
         case .loon: URL(string: "https://apps.apple.com/app/loon/id1373567447")!
+        case .stash: URL(string: "https://apps.apple.com/app/stash-rule-based-proxy/id1596063349")!
+        case .egern: URL(string: "https://apps.apple.com/app/egern/id1616105820")!
+        case .quantumultX: URL(string: "https://apps.apple.com/app/quantumult-x/id1443988620")!
+        case .singBox: URL(string: "https://apps.apple.com/app/sing-box-mt/id6785326793")!
         }
     }
 
@@ -84,6 +97,7 @@ final class AppModel {
         self.favouriteLocations = Self.locations(forKey: Self.favouritesKey, in: preferences)
         self.hasSeenFavouriteReorderHint = preferences.bool(forKey: Self.hasSeenFavouriteReorderHintKey)
         self.locationHistory = Self.locations(forKey: Self.historyKey, in: preferences)
+        self.coordinateModeMemory = Self.coordinateModeMemory(in: preferences)
         self.appearance = AppAppearance(
             rawValue: preferences.string(forKey: Self.appearanceKey) ?? ""
         ) ?? .automatic
@@ -171,6 +185,15 @@ final class AppModel {
         }
     }
 
+    func coordinateMode(for target: LocationTarget) -> FixedCoordinateMode {
+        coordinateModeMemory.mode(for: target)
+    }
+
+    func rememberManualCoordinateMode(_ mode: FixedCoordinateMode, for target: LocationTarget) {
+        coordinateModeMemory.recordManualChoice(mode, for: target)
+        saveCoordinateModeMemory()
+    }
+
     func isFavourite(_ target: LocationTarget) -> Bool {
         favouriteLocations.contains { $0.id == target.id }
     }
@@ -229,11 +252,16 @@ final class AppModel {
     func clearLocationHistory() {
         locationHistory = []
         preferences.removeObject(forKey: Self.historyKey)
+        // The nearby manual choice also holds a recently used coordinate.
+        coordinateModeMemory.forgetManualChoice()
+        saveCoordinateModeMemory()
     }
 
     func clearFavouriteLocations() {
         favouriteLocations = []
         preferences.removeObject(forKey: Self.favouritesKey)
+        WrapPinShortcuts.updateAppShortcutParameters()
+        saveCoordinateModeMemory()
     }
 
     func setAppearance(_ appearance: AppAppearance) {
@@ -310,6 +338,9 @@ final class AppModel {
         selectedTarget = nil
         favouriteLocations = []
         locationHistory = []
+        coordinateModeMemory = CoordinateModeMemory()
+        shortcutRequest = nil
+        WrapPinShortcuts.updateAppShortcutParameters()
         appearance = .automatic
         mapDisplayStyle = .standard
         tunnelHandoffApp = .localDevVPN
@@ -446,6 +477,10 @@ final class AppModel {
         let startIdentifier = UUID()
         pendingLocationStartIdentifier = startIdentifier
         addToHistory(historyTarget)
+        if let mode = recovery.fixedCoordinateMode {
+            coordinateModeMemory.recordUse(mode, for: historyTarget)
+            saveCoordinateModeMemory()
+        }
         let simulationCoordinates = FixedCoordinateTransform.coordinates(
             for: deviceTarget,
             mode: recovery.fixedCoordinateMode
@@ -828,6 +863,27 @@ final class AppModel {
     private func save(_ locations: [LocationTarget], forKey key: String) {
         guard let data = try? JSONEncoder().encode(locations) else { return }
         preferences.set(data, forKey: key)
+        if key == Self.favouritesKey {
+            // Siri phrases that name a favourite read the current list.
+            WrapPinShortcuts.updateAppShortcutParameters()
+        }
+        // Saved lists changed, so drop mode choices for places no longer stored.
+        saveCoordinateModeMemory()
+    }
+
+    private func saveCoordinateModeMemory() {
+        let storedIDs = Set((favouriteLocations + locationHistory).map(\.id))
+        coordinateModeMemory.retainPlaces(withIDs: storedIDs)
+        guard let data = try? JSONEncoder().encode(coordinateModeMemory) else { return }
+        preferences.set(data, forKey: Self.coordinateModeMemoryKey)
+    }
+
+    private static func coordinateModeMemory(in preferences: UserDefaults) -> CoordinateModeMemory {
+        guard
+            let data = preferences.data(forKey: Self.coordinateModeMemoryKey),
+            let memory = try? JSONDecoder().decode(CoordinateModeMemory.self, from: data)
+        else { return CoordinateModeMemory() }
+        return memory
     }
 
     private static func locations(forKey key: String, in preferences: UserDefaults) -> [LocationTarget] {

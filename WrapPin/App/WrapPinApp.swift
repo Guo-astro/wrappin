@@ -1,11 +1,19 @@
+import AppIntents
 import SwiftUI
 
 @main
 struct WrapPinApp: App {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
-    @State private var appModel = AppModel()
+    @State private var appModel: AppModel
     @State private var releaseUpdates = ReleaseUpdateModel()
+
+    init() {
+        // App Shortcuts and the interface share this one model.
+        let appModel = AppModel()
+        _appModel = State(initialValue: appModel)
+        AppDependencyManager.shared.add(dependency: appModel)
+    }
 
     var body: some Scene {
         WindowGroup {

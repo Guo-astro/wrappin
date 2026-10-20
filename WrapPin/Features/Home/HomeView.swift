@@ -372,6 +372,9 @@ struct HomeView: View {
                         ) ?? .wgs84,
                         onCoordinateModeChange: { mode in
                             fixedCoordinateMode = mode
+                            if let target = mapModel.selectedLocation {
+                                appModel.rememberManualCoordinateMode(mode, for: target)
+                            }
                             guard
                                 let target = mapModel.selectedLocation,
                                 case .active(let activeTarget) = appModel.deviceSession.phase,
@@ -540,6 +543,9 @@ struct HomeView: View {
                 appModel.deviceSetupWasPresented()
             }
         }
+        .onChange(of: appModel.shortcutRequest?.id, initial: true) {
+            handleShortcutRequest()
+        }
         .onChange(of: appModel.deviceSession.phase) { oldPhase, newPhase in
             walkingSimulation.handleDeviceSessionPhase(
                 newPhase,
@@ -590,7 +596,7 @@ struct HomeView: View {
                 {
                     fixedCoordinateMode = activeMode
                 } else {
-                    fixedCoordinateMode = FixedCoordinateMode.recommended(for: selectedLocation)
+                    fixedCoordinateMode = appModel.coordinateMode(for: selectedLocation)
                 }
             }
             guard !walkingSimulation.locksDestination else { return }
@@ -772,6 +778,36 @@ struct HomeView: View {
 
         selectPreviewedRoute(index)
         return true
+    }
+
+    // Performs App Shortcuts requests with the same steps as the matching buttons.
+    private func handleShortcutRequest() {
+        guard let request = appModel.takeShortcutRequest() else { return }
+        switch request.action {
+        case .start(let target):
+            isShowingSettings = false
+            isShowingSavedPlaces = false
+            shouldRefreshRealLocationWhenActive = false
+            mapModel.show(target)
+            Task {
+                await appModel.startLocationSession(
+                    at: target,
+                    coordinateMode: appModel.coordinateMode(for: target)
+                )
+            }
+        case .stop:
+            shouldClearLocationAfterRestoration = true
+            if walkingSimulation.locksDestination {
+                walkingSimulation.stop(using: appModel.deviceSession)
+            } else {
+                appModel.stopLocationSession()
+            }
+        case .restoreInterruptedSession:
+            recoveredWalkError = nil
+            walkingSimulation.reset()
+            walkingRoutePlanner.clear()
+            Task { await appModel.restoreRealLocationFromInterruptedSession() }
+        }
     }
 
     private func resumeInterruptedSession(_ recovery: SessionRecoveryRecord) {
