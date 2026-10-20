@@ -2,6 +2,24 @@
 
 All notable public changes to WrapPin are recorded here.
 
+## [1.0.19] - 2026-10-20
+
+### Added
+
+- App Shortcuts: **Simulate Favourite Place** and **Stop and Restore Real Location**, available in the Shortcuts app, Spotlight, Siri and automations. Both open WrapPin; stopping waits for device confirmation and reports an unconfirmed clear as a failure. Settings → Shortcuts explains them and opens WrapPin in the Shortcuts app.
+- Stash, Egern, Quantumult X and sing-box as tunnel handoff apps. Stash and Egern are asked to start; Quantumult X and sing-box are only opened.
+- Coordinate mode memory for saved and recent places, and for new places within 100 km of the last manual change. Reset WrapPin clears it.
+
+### Known limitations
+
+- Shortcuts do not start while an interrupted simulation is pending, a route simulation is running, or setup and pairing are incomplete. Recovery remains manual.
+- The existing mobile-data limitation applies to third-party tunnel apps; use Wi-Fi with them.
+
+### Tested
+
+- Both schemes passed Debug and Release builds, all eight check scripts passed, and all ten Rust unit tests passed. Both unsigned IPA files passed package identity, App Shortcuts metadata, extension and ZIP-integrity checks.
+- The maintainer reported that the 1.0.18 Build 62 test package, with the same feature code, worked on a physical device, including both shortcuts, without recording individual cases. Build 63 changes only the version and has not itself been installed on a device.
+
 ## [1.0.18] - 2026-10-15
 
 ### Fixed

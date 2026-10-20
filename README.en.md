@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <strong>Current version:</strong>1.0.18 (Build 61) · <strong>Requires:</strong>iOS 27+
+  <strong>Current version:</strong>1.0.19 (Build 63) · <strong>Requires:</strong>iOS 27+
 </p>
 
 <p align="center">
