@@ -160,6 +160,17 @@ A random installation identifier is stored in local app storage and irreversibly
 
 Open **Settings → Privacy → What Is Shared** for the same disclosure inside the app. The complete policy is in [Privacy](Privacy.md).
 
+## Shortcuts
+
+WrapPin adds two ready-made shortcuts to the Shortcuts app; nothing needs to be installed. **Settings → Shortcuts** explains them and opens WrapPin's page in the Shortcuts app.
+
+- **Simulate Favourite**: choose a saved favourite when it runs. WrapPin opens and starts simulating that place with the coordinate mode last used there. The shortcut only starts the request; follow the connection progress in WrapPin.
+- **Restore Real Location**: stops the running simulation, or restores the real location after an interrupted one, then waits for the device to confirm before reporting the result.
+
+Pair the iPhone and save at least one favourite first. WrapPin comes to the foreground while a shortcut runs and may open the selected tunnel app if the device connection is unavailable. If a simulation was interrupted, Simulate Favourite asks you to choose restore or continue in WrapPin first and never resolves it on its own; a running route simulation must also be stopped in WrapPin first.
+
+In the Shortcuts app, **Automation** can run a WrapPin action from a personal automation such as Arrive, Leave or Time of Day. With Siri, say “Simulate a favourite with WrapPin” or “Restore my real location with WrapPin”; for the Tunnel edition, use the name WrapPin Tunnel.
+
 ## Favourites, history and reset
 
 - Favourites remain until you delete them or reset the app.

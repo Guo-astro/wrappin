@@ -17,6 +17,8 @@ WrapPin does not send:
 
 Pairing records are stored in the device-only Keychain. App preferences and saved places remain in local app storage.
 
+The Simulate Favourite shortcut makes favourite names and place descriptions available to the Shortcuts app and Siri on this iPhone so a favourite can be chosen. Coordinates are not provided to them, and the shortcuts add no network request or statistics event.
+
 When the app opens, it requests the latest public release metadata from GitHub to check for an update. The request does not include location, pairing or diagnostic data. As with any network request, GitHub can observe connection metadata such as the requesting IP address.
 
 ## Optional background location indicator preference

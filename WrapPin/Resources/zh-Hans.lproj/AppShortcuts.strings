@@ -1,0 +1,5 @@
+/* Siri and Spotlight phrases for App Shortcuts. Each phrase must name the app. */
+"Simulate a favourite with ${applicationName}" = "用${applicationName}模拟收藏地点";
+"Simulate ${place} with ${applicationName}" = "用${applicationName}模拟${place}";
+"Restore my real location with ${applicationName}" = "用${applicationName}恢复真实位置";
+"Stop ${applicationName} simulation" = "停止${applicationName}模拟";

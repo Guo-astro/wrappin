@@ -1,3 +1,4 @@
+import AppIntents
 import Foundation
 import Observation
 
@@ -37,6 +38,8 @@ final class AppModel {
     private(set) var isRestoringInterruptedSession = false
     private(set) var interruptedSessionError: String?
     private(set) var isStartingLocationSession = false
+    // Set by App Shortcuts and performed by HomeView with the same code as its buttons.
+    var shortcutRequest: ShortcutRequest?
 
     private var activeSessionRecovery: SessionRecoveryRecord?
     private var pendingSessionRecovery: SessionRecoveryRecord?
@@ -47,6 +50,10 @@ final class AppModel {
     private var isStoppingLocationSessionForRestoration = false
     private var pendingSessionAnalyticsEvent: UsageAnalyticsEvent?
     private var coordinateModeMemory: CoordinateModeMemory
+
+    var isRunningRouteSession: Bool {
+        activeSessionRecovery?.isRoute == true
+    }
 
     var activeFixedCoordinateMode: FixedCoordinateMode? {
         guard
@@ -253,6 +260,7 @@ final class AppModel {
     func clearFavouriteLocations() {
         favouriteLocations = []
         preferences.removeObject(forKey: Self.favouritesKey)
+        WrapPinShortcuts.updateAppShortcutParameters()
         saveCoordinateModeMemory()
     }
 
@@ -330,6 +338,9 @@ final class AppModel {
         selectedTarget = nil
         favouriteLocations = []
         locationHistory = []
+        coordinateModeMemory = CoordinateModeMemory()
+        shortcutRequest = nil
+        WrapPinShortcuts.updateAppShortcutParameters()
         appearance = .automatic
         mapDisplayStyle = .standard
         tunnelHandoffApp = .localDevVPN
@@ -852,6 +863,10 @@ final class AppModel {
     private func save(_ locations: [LocationTarget], forKey key: String) {
         guard let data = try? JSONEncoder().encode(locations) else { return }
         preferences.set(data, forKey: key)
+        if key == Self.favouritesKey {
+            // Siri phrases that name a favourite read the current list.
+            WrapPinShortcuts.updateAppShortcutParameters()
+        }
         // Saved lists changed, so drop mode choices for places no longer stored.
         saveCoordinateModeMemory()
     }

@@ -126,6 +126,14 @@ struct SettingsView: View {
                     }
                 }
 
+                Section {
+                    NavigationLink {
+                        ShortcutsGuideView()
+                    } label: {
+                        settingsRowLabel("Shortcuts", symbol: "square.2.layers.3d")
+                    }
+                }
+
                 backgroundIndicatorSection
 
                 Section {
