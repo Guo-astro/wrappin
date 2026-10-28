@@ -14,7 +14,7 @@ use idevice::remote_pairing::{
     RpPairingSocket, connect_tls_psk_tunnel_native,
 };
 use idevice::rsd::RsdHandshake;
-use idevice::{RsdService, tcp};
+use idevice::{IdeviceError, RsdService, tcp};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::time::{Instant, sleep, timeout};
 
@@ -88,6 +88,7 @@ pub struct LocationResult {
     pub error_message: *mut c_char,
     pub error_stage: i32,
     pub error_is_recoverable: i32,
+    pub error_detail: *mut c_char,
 }
 
 /// Where a location session failed. The numeric values are part of the C ABI:
@@ -114,12 +115,14 @@ enum LocationStage {
     Cancelled = 15,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 struct LocationError {
     stage: LocationStage,
     /// The device tunnel was not reachable yet; the app may retry discovery.
     recoverable: bool,
     message: &'static str,
+    /// The underlying error kind, for copied diagnostics only. See `FailureDetail`.
+    detail: Option<String>,
 }
 
 impl LocationError {
@@ -128,6 +131,7 @@ impl LocationError {
             stage,
             recoverable: false,
             message,
+            detail: None,
         }
     }
 
@@ -136,11 +140,56 @@ impl LocationError {
             stage,
             recoverable: true,
             message,
+            detail: None,
         }
     }
 
     const fn cancelled() -> Self {
         Self::new(LocationStage::Cancelled, LOCATION_CANCELLED_ERROR)
+    }
+
+    fn with_detail(mut self, error: &impl FailureDetail) -> Self {
+        self.detail = error.failure_detail();
+        self
+    }
+}
+
+/// A short description of why an underlying step failed, shown only in the
+/// copied diagnostics. It keeps error kinds and codes, never device-provided
+/// text, so it cannot carry pairing material, device names or locations.
+trait FailureDetail {
+    fn failure_detail(&self) -> Option<String>;
+}
+
+impl FailureDetail for () {
+    fn failure_detail(&self) -> Option<String> {
+        None
+    }
+}
+
+impl FailureDetail for std::io::Error {
+    fn failure_detail(&self) -> Option<String> {
+        Some(match self.raw_os_error() {
+            Some(code) => format!("io {:?} (os {code})", self.kind()),
+            None => format!("io {:?}", self.kind()),
+        })
+    }
+}
+
+impl FailureDetail for IdeviceError {
+    fn failure_detail(&self) -> Option<String> {
+        if let IdeviceError::Socket(error) = self {
+            return error
+                .failure_detail()
+                .map(|detail| format!("idevice Socket {}: {detail}", self.code()));
+        }
+        // Only the variant name: its payload may hold device-provided text.
+        let debug = format!("{self:?}");
+        let variant: String = debug
+            .chars()
+            .take_while(|character| character.is_ascii_alphanumeric() || *character == '_')
+            .collect();
+        Some(format!("idevice {variant} {}", self.code()))
     }
 }
 
@@ -384,6 +433,7 @@ pub unsafe extern "C" fn wp_location_session_run(
         (*result).error_message = ptr::null_mut();
         (*result).error_stage = LocationStage::Unknown as i32;
         (*result).error_is_recoverable = 0;
+        (*result).error_detail = ptr::null_mut();
     }
 
     let session = unsafe { &*session };
@@ -453,6 +503,7 @@ unsafe fn write_location_error(result: &mut LocationResult, error: LocationError
     result.error_message = owned_c_string(error.message);
     result.error_stage = error.stage as i32;
     result.error_is_recoverable = error.recoverable as i32;
+    result.error_detail = error.detail.map_or(ptr::null_mut(), owned_c_string);
 }
 
 #[unsafe(no_mangle)]
@@ -463,9 +514,13 @@ pub unsafe extern "C" fn wp_location_result_destroy(result: *mut LocationResult)
     if !result.error_message.is_null() {
         unsafe { drop(CString::from_raw(result.error_message)) };
     }
+    if !result.error_detail.is_null() {
+        unsafe { drop(CString::from_raw(result.error_detail)) };
+    }
     result.error_message = ptr::null_mut();
     result.error_stage = LocationStage::Unknown as i32;
     result.error_is_recoverable = 0;
+    result.error_detail = ptr::null_mut();
 }
 
 #[unsafe(no_mangle)]
@@ -790,7 +845,7 @@ async fn run_location_session(
 /// Runs one step of connection setup, bounded by the session timeout and
 /// abandoned as soon as the session is cancelled. Nothing has been written to
 /// the device's location yet, so dropping the step leaves nothing to restore.
-async fn connection_step<T, E>(
+async fn connection_step<T, E: FailureDetail>(
     cancellation: &Arc<AtomicBool>,
     operation: impl std::future::Future<Output = Result<T, E>>,
     timed_out: LocationError,
@@ -798,13 +853,13 @@ async fn connection_step<T, E>(
 ) -> Result<T, LocationError> {
     tokio::select! {
         outcome = timeout(SESSION_TIMEOUT, operation) => {
-            outcome.map_err(|_| timed_out)?.map_err(|_| failed)
+            outcome.map_err(|_| timed_out)?.map_err(|error| failed.with_detail(&error))
         }
         _ = wait_for_cancellation(Arc::clone(cancellation)) => Err(LocationError::cancelled()),
     }
 }
 
-async fn await_location_write<E>(
+async fn await_location_write<E: FailureDetail>(
     operation: impl std::future::Future<Output = Result<(), E>>,
     deadline: Duration,
     stage: LocationStage,
@@ -834,10 +889,10 @@ async fn await_location_write<E>(
     timeout(deadline, operation)
         .await
         .map_err(|_| timed_out)?
-        .map_err(|_| failed)
+        .map_err(|error| failed.with_detail(&error))
 }
 
-async fn await_location_clear<E>(
+async fn await_location_clear<E: FailureDetail>(
     operation: impl std::future::Future<Output = Result<(), E>>,
     deadline: Duration,
 ) -> Result<(), LocationError> {
@@ -849,11 +904,12 @@ async fn await_location_clear<E>(
                 "The iPhone did not confirm stopping location simulation in time.",
             )
         })?
-        .map_err(|_| {
+        .map_err(|error| {
             LocationError::new(
                 LocationStage::LocationRestore,
                 "WrapPin could not confirm stopping location simulation.",
             )
+            .with_detail(&error)
         })
 }
 
@@ -1162,5 +1218,32 @@ mod connection_step_tests {
         .unwrap_err();
         assert_eq!(error.stage, LocationStage::Cancelled);
         assert!(started.elapsed() < SESSION_TIMEOUT);
+    }
+
+    #[tokio::test]
+    async fn failure_keeps_only_the_underlying_error_kind() {
+        let cancellation = Arc::new(AtomicBool::new(false));
+        let error = connection_step(
+            &cancellation,
+            std::future::ready(Err::<(), _>(IdeviceError::UnexpectedResponse(
+                "device-provided text".into(),
+            ))),
+            TIMED_OUT,
+            FAILED,
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.message, FAILED.message);
+        let detail = error.detail.unwrap();
+        assert!(detail.starts_with("idevice UnexpectedResponse "));
+        assert!(!detail.contains("device-provided"));
+    }
+
+    #[test]
+    fn socket_failures_report_the_io_kind() {
+        let error = IdeviceError::Socket(std::io::Error::from(std::io::ErrorKind::ConnectionReset));
+        let detail = error.failure_detail().unwrap();
+        assert!(detail.starts_with("idevice Socket "));
+        assert!(detail.ends_with("io ConnectionReset"));
     }
 }

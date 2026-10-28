@@ -262,7 +262,7 @@ final class ConnectionDiagnosticsCoordinator: NSObject {
         connection.cancel()
 
         if reachable {
-            finish(.passed("The pairing record is valid and this iPhone is reachable through the device tunnel."))
+            finish(.passed("The pairing record matches this iPhone and it is reachable through the device tunnel. The iPhone verifies the pairing itself when a location session starts."))
         } else if let fallbackHost {
             probe(host: fallbackHost, port: port, fallbackHost: nil)
         } else {

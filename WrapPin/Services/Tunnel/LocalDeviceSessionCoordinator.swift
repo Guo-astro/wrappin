@@ -128,6 +128,8 @@ final class LocalDeviceSessionCoordinator: NSObject {
     private(set) var connectionStage: DeviceSessionConnectionStage = .idle
     private(set) var endpointSource: DeviceEndpointSource?
     private(set) var lastFailureMessage: String?
+    /// The native engine's underlying error kind for the last failure; diagnostics only.
+    private(set) var lastFailureDetail: String?
     var onConnectionEvent: ((UsageAnalyticsEvent) -> Void)?
     private var retryTelemetry = ConnectionRetryTelemetry()
     private var vpnReturnRetryUsed = false
@@ -224,6 +226,7 @@ final class LocalDeviceSessionCoordinator: NSObject {
         schedulerFailureReason = nil
         lastFailureStage = nil
         lastFailureDisposition = nil
+        lastFailureDetail = nil
         restorationStatus = String(localized: "Not requested")
         didConfirmLocationClear = false
         vpnReturnRetryUsed = false
@@ -731,6 +734,7 @@ final class LocalDeviceSessionCoordinator: NSObject {
         if cancellationRequested {
             cancellationRequested = false
             if case .failure(let failure) = outcome, !failure.wasCancelled {
+                lastFailureDetail = failure.detail
                 restorationStatus = String(localized: "Stop not confirmed; real location unverified")
                 clearPendingSession()
                 enterFailedPhase(
@@ -754,6 +758,7 @@ final class LocalDeviceSessionCoordinator: NSObject {
             phase = .idle
             connectionStage = .idle
         case .failure(let failure):
+            lastFailureDetail = failure.detail
             if failure.isRecoverable {
                 let stage = failure.stage ?? .locationUnknown
                 lastFailureStage = stage
@@ -1204,6 +1209,8 @@ private struct NativeLocationFailure: Sendable {
     let stage: FailureStage?
     let isRecoverable: Bool
     let wasCancelled: Bool
+    /// The underlying error kind and code; never shown outside diagnostics.
+    let detail: String?
 }
 
 private enum NativeLocationOutcome: Sendable {
@@ -1226,7 +1233,8 @@ private enum NativeLocationOutcome: Sendable {
             message: message.isEmpty ? "The iPhone could not start the location session." : message,
             stage: FailureStage(nativeLocationStage: result.error_stage),
             isRecoverable: result.error_is_recoverable != 0,
-            wasCancelled: result.error_stage == FailureStage.nativeLocationCancelledCode
+            wasCancelled: result.error_stage == FailureStage.nativeLocationCancelledCode,
+            detail: result.error_detail.map { String(cString: $0) }
         ))
     }
 }

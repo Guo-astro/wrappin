@@ -551,6 +551,7 @@ struct ConnectionHealthView: View {
         Background session started: \(appModel.deviceSession.backgroundKeepAlive.started)
         Last session issue stage (this launch): \(appModel.deviceSession.lastFailureStage?.rawValue ?? "None")
         Last session issue disposition: \(appModel.deviceSession.lastFailureDisposition?.rawValue ?? "None")
+        Last session issue detail (this launch): \(appModel.deviceSession.lastFailureDetail ?? "None")
         Restoration: \(appModel.deviceSession.restorationStatus)
         Last connection check: \(checked)
         Connection check result: \(diagnosticResultStatus)
