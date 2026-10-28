@@ -558,7 +558,7 @@
 "WrapPin is preparing the secure device session." = "正在准备安全连接。";
 "WrapPin is controlling the session." = "模拟定位正在运行。";
 "Enter latitude from −90 to 90 and longitude from −180 to 180." = "纬度请输入 −90 到 90，经度请输入 −180 到 180。";
-"No matching place found." = "没有找到匹配的地点。";
+"No matching place found. You can also paste coordinates, such as 35.6586, 139.7454." = "没有找到匹配的地点。也可以直接粘贴坐标，例如 35.6586, 139.7454。";
 "Search is unavailable right now." = "暂时无法搜索地点，请稍后重试。";
 "Location details unavailable" = "暂无地点详情";
 "Allow Location access in Settings to show your real position." = "请在系统设置中允许定位权限，以显示真实位置。";

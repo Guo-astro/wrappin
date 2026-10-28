@@ -238,7 +238,7 @@ final class MapViewModel: NSObject, MKLocalSearchCompleterDelegate {
         do {
             let response = try await MKLocalSearch(request: request).start()
             guard let item = response.mapItems.first else {
-                errorMessage = String(localized: "No matching place found.")
+                errorMessage = String(localized: "No matching place found. You can also paste coordinates, such as 35.6586, 139.7454.")
                 return
             }
 
@@ -370,26 +370,14 @@ final class MapViewModel: NSObject, MKLocalSearchCompleterDelegate {
     }
 
     private func coordinateInput(from query: String) -> CoordinateInput {
-        let trimmed = query.trimmingCharacters(
-            in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "()[]"))
-        )
-        let parts = trimmed.split(separator: ",", omittingEmptySubsequences: false)
-        guard parts.count == 2 else { return .notCoordinates }
-
-        let latitudeText = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
-        let longitudeText = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
-        guard
-            let latitude = Double(latitudeText),
-            let longitude = Double(longitudeText)
-        else { return .notCoordinates }
-
-        guard (-90...90).contains(latitude), (-180...180).contains(longitude) else {
+        switch CoordinateInputParser.parse(query) {
+        case .notCoordinates:
+            return .notCoordinates
+        case .invalid:
             return .invalid
+        case .coordinate(let latitude, let longitude):
+            return .coordinate(CLLocationCoordinate2D(latitude: latitude, longitude: longitude))
         }
-
-        return .coordinate(
-            CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-        )
     }
 
     func clearSearch() {

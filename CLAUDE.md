@@ -31,7 +31,7 @@ python3 scripts/check-localization.py      # 所有字面量 UI 文案都有 zh-
 python3 scripts/test-failure-stages.py     # Rust 阶段码 ↔ 头文件 ↔ FailureStage 一致，配对错误文案分类覆盖
 python3 scripts/test-background-session.py # 后台保活生命周期（用假平台类型编译生产代码）
 
-# 五个 Swift 检查需要与对应的生产源文件一起编译：
+# 六个 Swift 检查需要与对应的生产源文件一起编译：
 xcrun swiftc -parse-as-library scripts/check-fixed-coordinate-mode.swift \
   WrapPin/Services/FixedCoordinateMode.swift WrapPin/Models/LocationTarget.swift \
   WrapPin/Models/SessionRecoveryRecord.swift WrapPin/Models/CoordinateModeMemory.swift \
@@ -45,6 +45,8 @@ xcrun swiftc -parse-as-library scripts/test-tunnel-handoff.swift \
   WrapPin/Models/AppPreferences.swift WrapPin/App/BuildEdition.swift -o /tmp/check && /tmp/check
 xcrun swiftc -parse-as-library scripts/test-route-selection.swift \
   WrapPin/Features/Map/RouteHitTesting.swift -o /tmp/check && /tmp/check
+xcrun swiftc -parse-as-library scripts/test-coordinate-input.swift \
+  WrapPin/Features/Map/CoordinateInputParser.swift -o /tmp/check && /tmp/check
 ```
 
 打包与原生引擎：
