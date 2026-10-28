@@ -2,6 +2,29 @@
 
 All notable public changes to WrapPin are recorded here.
 
+## [1.0.20] - 2026-10-28
+
+### Added
+
+- Overseas place search: a Domestic / Overseas switch in the search box sends overseas queries to Geoapify (OpenStreetMap data) because mainland Apple Maps data has few overseas places. Up to five candidates appear with precision labels; a leading Chinese country name limits results to that country, and house-number queries show non-building results as approximate. Searches run only on submit, with 50 per iPhone per day and a seven-day on-device cache.
+- Pasted coordinates with full-width commas, spaces, degree signs with N/S/E/W, 北纬/东经 or degrees-minutes-seconds.
+
+### Changed
+
+- Map error messages fade after a few seconds, can be tapped away and animate in and out. When a search finds nothing, WrapPin suggests pasting coordinates.
+- Copy Diagnostics includes the underlying error kind and code of a failed location session. The connection check no longer says the pairing is valid.
+
+### Known limitations
+
+- In mainland China overseas search may need a proxy to reach Geoapify. Many street addresses, especially in Japan, are not found; paste coordinates instead.
+- All installations share one free Geoapify quota.
+- Overseas points inside the mainland coordinate-mode envelope, such as Seoul, are still recommended GCJ-02.
+
+### Tested
+
+- Both schemes passed Debug and Release builds, all ten check scripts passed, and all twelve Rust unit tests passed. Both unsigned IPA files passed package identity, version, extension and ZIP-integrity checks.
+- The maintainer used overseas search on a physical iPhone with the Build 64 test package; the two issues found were fixed. Builds 65 and 66 have not been installed on a device.
+
 ## [1.0.19] - 2026-10-20
 
 ### Added

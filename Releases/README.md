@@ -2,9 +2,22 @@
 
 ## Active distribution tracks
 
-- Public release: `v1.0.19` Build 63, with both editions attached to the same GitHub Release.
-- Standard edition (SideStore and other self-signing): `WrapPin-Standard-1.0.19-build63-unsigned.ipa`, bundle ID `com.suversal.wrappin`.
-- Tunnel edition (signing profiles with Packet Tunnel permission): `WrapPin-Tunnel-1.0.19-build63-unsigned.ipa`, bundle ID `com.suversal.wrappin.selfsigned`, extension `com.suversal.wrappin.selfsigned.tunnel`.
+- Public release: `v1.0.20` Build 66, with both editions attached to the same GitHub Release.
+- Standard edition (SideStore and other self-signing): `WrapPin-Standard-1.0.20-build66-unsigned.ipa`, bundle ID `com.suversal.wrappin`.
+- Tunnel edition (signing profiles with Packet Tunnel permission): `WrapPin-Tunnel-1.0.20-build66-unsigned.ipa`, bundle ID `com.suversal.wrappin.selfsigned`, extension `com.suversal.wrappin.selfsigned.tunnel`.
+
+## 1.0.20 (Build 66)
+
+- Created: 28 October 2026 (Asia/Shanghai) with Xcode 27.0 (`27A266a`) using `scripts/package-ipa.sh all`, from commit `917bccd66392ca91180f8c412ad685cb6351f488`. Subsequent release-documentation changes do not alter the packaged source.
+- Standard IPA: `WrapPin-Standard-1.0.20-build66-unsigned.ipa`; SHA-256 `7e2065489239572d983ebd08588d75e05d99221ba9e6f5ed32837f2b2dd4fb0b`; bundle ID `com.suversal.wrappin`; no Packet Tunnel extension or NetworkExtension linkage.
+- Tunnel IPA: `WrapPin-Tunnel-1.0.20-build66-unsigned.ipa`; SHA-256 `427d0d4b995ce49dbd6aa092d24e554719fe76aae7fc622cd571d93aba273322`; bundle ID `com.suversal.wrappin.selfsigned`; contains `WrapPinTunnel.appex` with ID `com.suversal.wrappin.selfsigned.tunnel`.
+- Both: optimized unsigned Release Archive, arm64 iPhone, iOS 27+. No signing profiles are embedded. A Geoapify API key is configured, so overseas search is enabled and the key is included in both packages. No TelemetryDeck identifiers were configured, so the build sends no usage statistics.
+- Changes: overseas place search with Geoapify; more pasted coordinate formats; self-dismissing, animated map messages; underlying error kind in location-session diagnostics.
+- Verification: all ten check scripts, all twelve Rust unit tests, both schemes in Debug and Release, both Release archives, ZIP integrity, identifiers, versions and extension presence or absence passed. The maintainer used overseas search on a physical iPhone with the Build 64 test package; the proxy requirement and persistent map messages it revealed are addressed. Builds 65 and 66 have not been installed on a device.
+- Known issues: overseas search may need a proxy in mainland China; many overseas street addresses are not found; all installations share one free Geoapify quota; overseas points inside the mainland coordinate-mode envelope are still recommended GCJ-02. The quiet archive command printed `error: the following command failed with exit code 0 but produced no further output` before completing; explicit builds passed. Builds 64 and 65 were local test packages and were not published.
+- Publication: GitHub Release `v1.0.20`.
+
+See the [English](../Documentation/Release-1.0.20.md) and [Chinese](../Documentation/Release-1.0.20.zh-CN.md) build notes for details.
 
 ## 1.0.19 (Build 63)
 
