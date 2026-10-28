@@ -5,6 +5,9 @@ struct MapSearchBar: View {
     @Binding var query: String
     @FocusState.Binding var isFocused: Bool
     let isSearching: Bool
+    /// Nil when this build has no overseas search service configured.
+    var isOverseasSearch: Bool?
+    var onToggleOverseasSearch: () -> Void = {}
     let onSubmit: () -> Void
     let onClear: () -> Void
 
@@ -41,11 +44,16 @@ struct MapSearchBar: View {
 
     private var searchFieldRow: some View {
         HStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
+            Image(systemName: isOverseasSearch == true ? "globe.asia.australia.fill" : "magnifyingglass")
+                .foregroundStyle(isOverseasSearch == true ? AnyShapeStyle(.blue) : AnyShapeStyle(.secondary))
                 .accessibilityHidden(true)
 
-            TextField("Search places or coordinates", text: $query)
+            TextField(
+                isOverseasSearch == true
+                    ? LocalizedStringKey("Search overseas places or coordinates")
+                    : LocalizedStringKey("Search places or coordinates"),
+                text: $query
+            )
                 .focused($isFocused)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
@@ -66,6 +74,25 @@ struct MapSearchBar: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear search")
+            }
+
+            if let isOverseasSearch {
+                Button(action: onToggleOverseasSearch) {
+                    Text(isOverseasSearch ? "Overseas" : "Domestic")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(isOverseasSearch ? .white : .primary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            isOverseasSearch ? AnyShapeStyle(.blue) : AnyShapeStyle(.quaternary),
+                            in: Capsule()
+                        )
+                        .frame(minHeight: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Overseas search")
+                .accessibilityHint("Switches between domestic and overseas place search")
+                .accessibilityAddTraits(isOverseasSearch ? .isSelected : [])
             }
         }
         .frame(minHeight: 44)

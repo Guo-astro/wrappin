@@ -31,7 +31,7 @@ python3 scripts/check-localization.py      # 所有字面量 UI 文案都有 zh-
 python3 scripts/test-failure-stages.py     # Rust 阶段码 ↔ 头文件 ↔ FailureStage 一致，配对错误文案分类覆盖
 python3 scripts/test-background-session.py # 后台保活生命周期（用假平台类型编译生产代码）
 
-# 五个 Swift 检查需要与对应的生产源文件一起编译：
+# 七个 Swift 检查需要与对应的生产源文件一起编译：
 xcrun swiftc -parse-as-library scripts/check-fixed-coordinate-mode.swift \
   WrapPin/Services/FixedCoordinateMode.swift WrapPin/Models/LocationTarget.swift \
   WrapPin/Models/SessionRecoveryRecord.swift WrapPin/Models/CoordinateModeMemory.swift \
@@ -45,6 +45,10 @@ xcrun swiftc -parse-as-library scripts/test-tunnel-handoff.swift \
   WrapPin/Models/AppPreferences.swift WrapPin/App/BuildEdition.swift -o /tmp/check && /tmp/check
 xcrun swiftc -parse-as-library scripts/test-route-selection.swift \
   WrapPin/Features/Map/RouteHitTesting.swift -o /tmp/check && /tmp/check
+xcrun swiftc -parse-as-library scripts/test-coordinate-input.swift \
+  WrapPin/Features/Map/CoordinateInputParser.swift -o /tmp/check && /tmp/check
+xcrun swiftc -parse-as-library scripts/test-overseas-search.swift \
+  WrapPin/Services/OverseasPlaceSearch.swift -o /tmp/check && /tmp/check
 ```
 
 打包与原生引擎：
@@ -105,6 +109,7 @@ SwiftUI Views (Features/*)
 ### 路线与坐标
 
 - `Features/Map/` 下的 `WalkingRoutePlanner` / `WalkingSimulationController` 同时承担步行和驾车（`RouteMode`），名称里的 “Walking” 是历史遗留。
+- 海外搜索（`OverseasPlaceSearch`）：国内 Apple 地图数据缺少海外地点，搜索框切到“海外”后改用 Geoapify（OSM 数据，WGS-84）。只在提交时请求，不做实时补全；查询开头的中文国名转成 `countrycode` 过滤，带门牌号的查询里非 building 结果一律标为大致位置，改动请求或标注规则时递增 `OverseasSearchCache.version`；每台设备每天 50 次、结果缓存 7 天；未配置 `WRAPPIN_GEOAPIFY_API_KEY` 时整个切换隐藏。在中国大陆不开代理可能连不上 Geoapify（2026-10-28 用户实测），连接失败的提示会引导开代理或粘贴坐标；Key 会随 IPA 分发，所有安装共享免费额度，结果必须显示 Geoapify 与 OpenStreetMap 署名。
 - `FixedCoordinateMode`（`gcj02` / `wgs84`）由用户选择；`FixedCoordinateTransform` 对所选点做 GCJ-02 的迭代求逆。该模式同时作用于固定位置、路线的起点/途中更新/终点以及恢复记录。`recommended(for:)` 只是初始建议，不限制转换范围。
 
 ## 必须保持的跨文件约定

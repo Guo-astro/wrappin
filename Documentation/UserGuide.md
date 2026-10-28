@@ -21,10 +21,12 @@ Pairing is normally required only once. WrapPin stores the pairing record in thi
 Use any of these methods:
 
 - Type a place into the search box and choose a live result.
-- Enter coordinates such as `51.50740, -0.12780`.
+- Enter coordinates such as `51.50740, -0.12780`. Pasted formats such as `35.6586° N, 139.7454° E`, `北纬35.6586°，东经139.7454°` and degrees-minutes-seconds also work.
 - Tap anywhere on the map to drop a precise pin.
 - Open the heart/list button to choose a favourite or recent location.
 - Use **Resume** when WrapPin offers the last used location.
+
+Apple Maps data on iPhones in mainland China often has no overseas places. When a build includes overseas search, tap **Domestic** at the end of the search box to switch to **Overseas**, type the place and tap Search. Starting the query with a country name in Chinese, such as 法国巴黎 or 日本东京塔, limits results to that country. Up to five candidates appear, each labelled with its precision (house number, place, street, area, city…); an orange label means only an approximate position was found, so check it before simulating. For a query with a house number, only a result at that house number is shown as exact. Overseas search connects to Geoapify's servers outside China; in mainland China it may not be reachable without a proxy, in which case paste coordinates instead. Overseas results come from Geoapify using OpenStreetMap data, and street addresses are often missing, especially in Japan. Each iPhone can run 50 overseas searches a day; repeating a recent search uses the saved result. If a place cannot be found, paste its coordinates instead.
 
 Choosing a search result clears the search box automatically. The close button on a selected-location card clears a dropped pin or selection. The copy button copies the readable place and address.
 

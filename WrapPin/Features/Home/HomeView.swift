@@ -100,6 +100,12 @@ struct HomeView: View {
                     ),
                     isFocused: $isSearchFocused,
                     isSearching: mapModel.isSearching,
+                    isOverseasSearch: mapModel.isOverseasSearchAvailable
+                        ? mapModel.isOverseasSearch
+                        : nil,
+                    onToggleOverseasSearch: {
+                        mapModel.setOverseasSearch(!mapModel.isOverseasSearch)
+                    },
                     onSubmit: {
                         Task { await mapModel.search() }
                     },
@@ -113,6 +119,16 @@ struct HomeView: View {
                         onSelect: { suggestion in
                             isSearchFocused = false
                             Task { await mapModel.selectSuggestion(suggestion) }
+                        }
+                    )
+                }
+
+                if mapModel.isShowingOverseasResults && !walkingSimulation.locksDestination {
+                    OverseasResultsView(
+                        places: mapModel.overseasResults,
+                        onSelect: { place in
+                            isSearchFocused = false
+                            mapModel.selectOverseasPlace(place)
                         }
                     )
                 }
@@ -439,20 +455,37 @@ struct HomeView: View {
             .padding(.top, 8)
             .padding(.bottom, 8)
 
-            if let message = mapModel.errorMessage {
-                VStack {
-                    Spacer()
+            // Always present so the banner animates both in and out, whether it
+            // is dismissed by a tap or by its timer.
+            VStack {
+                Spacer()
+                if let message = mapModel.errorMessage {
                     Text(message)
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(.red, in: Capsule())
+                        .background(.red, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .padding(.horizontal, 16)
+                        .onTapGesture(perform: mapModel.dismissError)
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityHint("Dismisses this message")
                         .padding(.bottom, 196)
+                        .transition(
+                            reduceMotion
+                                ? .opacity
+                                : .asymmetric(
+                                    insertion: .opacity.combined(with: .offset(y: 12)),
+                                    removal: .opacity.combined(with: .scale(scale: 0.92))
+                                )
+                        )
                 }
-                .transition(.opacity)
-                .allowsHitTesting(false)
             }
+            .animation(
+                reduceMotion ? .easeInOut(duration: 0.2) : .spring(duration: 0.35, bounce: 0.15),
+                value: mapModel.errorMessage
+            )
 
             if let guidance = appModel.deviceSession.mobileDataGuidance {
                 Color.black.opacity(0.34)
@@ -665,7 +698,7 @@ struct HomeView: View {
     }
 
     private var isSearchingForLocation: Bool {
-        isSearchFocused || mapModel.isShowingSuggestions
+        isSearchFocused || mapModel.isShowingSuggestions || mapModel.isShowingOverseasResults
     }
 
     private var isPaired: Bool {

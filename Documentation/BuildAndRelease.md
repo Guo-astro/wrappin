@@ -4,7 +4,7 @@ This guide covers WrapPin's development builds and the planned IPA workflow.
 
 ## Current release tracks
 
-- Marketing version: `1.0.19`, Build `63`, for both editions
+- Marketing version: `1.0.20`, Build `66`, for both editions
 - Standard edition (SideStore): bundle identifier `com.suversal.wrappin`
 - Tunnel edition: bundle identifier `com.suversal.wrappin.selfsigned`; extension: `com.suversal.wrappin.selfsigned.tunnel`
 - Minimum deployment target: iOS 27
@@ -99,6 +99,8 @@ Three build settings configure a public or locally signed build:
 - `WRAPPIN_TELEMETRY_NAMESPACE`
 
 The tracked `Configuration/Local.xcconfig` keeps the public bundle identifier and leaves the TelemetryDeck ingestion identifiers blank. Copy `Configuration/Local.private.xcconfig.example` to the ignored `Configuration/Local.private.xcconfig` to override the bundle identifier for a personal team, set `DEVELOPMENT_TEAM`, or configure both TelemetryDeck values for a release. The telemetry values are ingestion identifiers, not an account password or API token. Without both values, the client sends nothing. Keeping the live destination and signing identity outside the public project prevents forks from accidentally adding data to WrapPin's dashboard or inheriting the repository owner's Apple team.
+
+`WRAPPIN_GEOAPIFY_API_KEY` enables overseas place search. Unlike the telemetry identifiers it is an API key, and it ships inside every IPA built with it, so every installation shares its free quota. Leave it blank to hide overseas search. Check the key's daily usage in the Geoapify dashboard after a release.
 
 Before packaging a configured build, inspect the event structure, confirm the privacy disclosure still matches it, and run the privacy rows in the regression checklist. Never add coordinates, place text, searches, saved locations, routes, pairing material, device names, user-supplied text or diagnostic content to an event.
 
