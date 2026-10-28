@@ -29,6 +29,14 @@ Use this checklist before packaging an IPA or declaring a development build stab
 - [ ] Choosing a result dismisses the keyboard and clears the search text.
 - [ ] Search accepts valid latitude/longitude coordinates.
 - [ ] Invalid coordinates produce a readable error without changing location.
+- [ ] Pasted coordinates with full-width commas, degree signs with N/S/E/W, 北纬/东经 or degrees-minutes-seconds select the same point as the decimal form.
+- [ ] Without a Geoapify key the Domestic/Overseas switch is hidden. With a key, Overseas search shows no live suggestions while typing and sends one request only on Search.
+- [ ] Overseas candidates show a precision label; city-level or coarser results use an orange label, and the Geoapify and OpenStreetMap attribution links open.
+- [ ] A query starting with a country name (法国巴黎, 美国纽约第五大道350号) returns results only from that country; for a house-number query, results that are not at a house number show the orange Approximate label.
+- [ ] Choosing an overseas candidate keeps its name and address, centres the map on it, and defaults to WGS-84 outside the mainland envelope.
+- [ ] Repeating an overseas search within seven days does not send a request; after 50 searches in a day the limit message appears and coordinate input still works.
+- [ ] An invalid or suspended key shows the overseas-unavailable message instead of an empty list.
+- [ ] In mainland China with every proxy off (LocalDevVPN may stay on), an overseas search that cannot connect shows the message suggesting a proxy or pasted coordinates; record whether Wi-Fi and cellular can reach Geoapify directly.
 - [ ] Tapping the map drops a pin with one non-duplicated address description.
 - [ ] Clear removes the selected pin/card state.
 - [ ] Done dismisses the keyboard without covering the location card.

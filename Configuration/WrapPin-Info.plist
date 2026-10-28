@@ -67,6 +67,8 @@
 	<string>$(WRAPPIN_TELEMETRY_APP_ID)</string>
 	<key>WrapPinTelemetryNamespace</key>
 	<string>$(WRAPPIN_TELEMETRY_NAMESPACE)</string>
+	<key>WrapPinGeoapifyAPIKey</key>
+	<string>$(WRAPPIN_GEOAPIFY_API_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

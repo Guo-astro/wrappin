@@ -11,8 +11,12 @@ final class MapViewModel: NSObject, MKLocalSearchCompleterDelegate {
     var isSearching = false
     var isResolvingAddress = false
     var isFindingRealLocation = false
-    var errorMessage: String?
+    var errorMessage: String? {
+        didSet { scheduleErrorDismissal() }
+    }
     var cameraPosition: MapCameraPosition
+    var overseasResults: [OverseasPlace] = []
+    private(set) var isOverseasSearch = UserDefaults.standard.bool(forKey: MapViewModel.overseasSearchKey)
 
     @ObservationIgnored
     private let searchCompleter = MKLocalSearchCompleter()
@@ -34,6 +38,15 @@ final class MapViewModel: NSObject, MKLocalSearchCompleterDelegate {
     private var requiresFreshRealLocation = false
     @ObservationIgnored
     private var activeAddressLookupID: UUID?
+    @ObservationIgnored
+    private var errorDismissalTask: Task<Void, Never>?
+    @ObservationIgnored
+    private lazy var overseasQuota = Self.loadOverseasQuota()
+    @ObservationIgnored
+    private lazy var overseasCache = Self.loadOverseasCache()
+
+    private static let overseasSearchKey = "overseasSearchEnabled"
+    private static let overseasQuotaKey = "overseasSearchQuota"
 
     override init() {
         cameraPosition = .automatic
@@ -49,9 +62,31 @@ final class MapViewModel: NSObject, MKLocalSearchCompleterDelegate {
             && !searchSuggestions.isEmpty
     }
 
+    var isShowingOverseasResults: Bool {
+        !overseasResults.isEmpty
+    }
+
+    var isOverseasSearchAvailable: Bool {
+        OverseasPlaceSearch.isConfigured
+    }
+
+    /// Mainland Apple Maps data rarely includes overseas places, so overseas
+    /// search uses its own service instead of MapKit.
+    private var usesOverseasSearch: Bool {
+        isOverseasSearch && isOverseasSearchAvailable
+    }
+
+    func setOverseasSearch(_ isEnabled: Bool) {
+        guard isEnabled != isOverseasSearch else { return }
+        isOverseasSearch = isEnabled
+        UserDefaults.standard.set(isEnabled, forKey: Self.overseasSearchKey)
+        updateSearchQuery(searchQuery)
+    }
+
     func updateSearchQuery(_ query: String) {
         searchQuery = query
         errorMessage = nil
+        overseasResults = []
 
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         switch coordinateInput(from: trimmedQuery) {
@@ -63,7 +98,9 @@ final class MapViewModel: NSObject, MKLocalSearchCompleterDelegate {
             break
         }
 
-        guard trimmedQuery.count >= 2 else {
+        // Overseas results are fetched only on submit, never while typing,
+        // so each search spends at most one request of the shared quota.
+        guard !usesOverseasSearch, trimmedQuery.count >= 2 else {
             searchSuggestions = []
             searchCompleter.queryFragment = ""
             return
@@ -104,7 +141,26 @@ final class MapViewModel: NSObject, MKLocalSearchCompleterDelegate {
             break
         }
 
-        await performSearch(for: trimmedQuery)
+        if usesOverseasSearch {
+            await performOverseasSearch(for: trimmedQuery)
+        } else {
+            await performSearch(for: trimmedQuery)
+        }
+    }
+
+    func selectOverseasPlace(_ place: OverseasPlace) {
+        let target = LocationTarget(
+            name: place.name,
+            subtitle: place.address.isEmpty
+                ? String(localized: "Location details unavailable")
+                : place.address,
+            latitude: place.latitude,
+            longitude: place.longitude
+        )
+        selectedLocation = target
+        errorMessage = nil
+        center(on: target)
+        resetSearchField()
     }
 
     func selectSuggestion(_ suggestion: MapSearchSuggestion) async {
@@ -265,6 +321,80 @@ final class MapViewModel: NSObject, MKLocalSearchCompleterDelegate {
         }
     }
 
+    private func performOverseasSearch(for query: String) async {
+        isSearching = true
+        errorMessage = nil
+        overseasResults = []
+        defer { isSearching = false }
+
+        let now = Date()
+        let places: [OverseasPlace]
+        if let cached = overseasCache.places(for: query, at: now) {
+            places = cached
+        } else {
+            let day = OverseasSearchQuota.dayKey(for: now)
+            guard overseasQuota.canSearch(on: day) else {
+                errorMessage = String(localized: "This iPhone has reached today's overseas search limit. You can paste coordinates instead.")
+                return
+            }
+            // Counted before sending, so failing requests cannot be retried endlessly.
+            overseasQuota.recordSearch(on: day)
+            Self.saveOverseasQuota(overseasQuota)
+
+            do {
+                places = try await OverseasPlaceSearch.search(query)
+            } catch is CancellationError {
+                return
+            } catch OverseasSearchError.network {
+                errorMessage = String(localized: "Overseas search could not be reached. In mainland China it may need a proxy; you can also paste coordinates instead.")
+                return
+            } catch {
+                errorMessage = String(localized: "Overseas search is unavailable right now. You can paste coordinates instead.")
+                return
+            }
+            overseasCache.store(places, for: query, at: now)
+            Self.saveOverseasCache(overseasCache)
+        }
+
+        // The user may have edited or cleared the query while waiting.
+        guard searchQuery.trimmingCharacters(in: .whitespacesAndNewlines) == query else { return }
+        guard !places.isEmpty else {
+            errorMessage = String(localized: "No overseas place found. Try the local or English name, or paste coordinates.")
+            return
+        }
+        overseasResults = places
+    }
+
+    private static func loadOverseasQuota() -> OverseasSearchQuota {
+        guard let data = UserDefaults.standard.data(forKey: overseasQuotaKey),
+              let quota = try? JSONDecoder().decode(OverseasSearchQuota.self, from: data)
+        else { return OverseasSearchQuota() }
+        return quota
+    }
+
+    private static func saveOverseasQuota(_ quota: OverseasSearchQuota) {
+        guard let data = try? JSONEncoder().encode(quota) else { return }
+        UserDefaults.standard.set(data, forKey: overseasQuotaKey)
+    }
+
+    private static var overseasCacheURL: URL? {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("OverseasSearchCache.json")
+    }
+
+    private static func loadOverseasCache() -> OverseasSearchCache {
+        guard let url = overseasCacheURL,
+              let data = try? Data(contentsOf: url),
+              let cache = try? JSONDecoder().decode(OverseasSearchCache.self, from: data)
+        else { return OverseasSearchCache() }
+        return cache
+    }
+
+    private static func saveOverseasCache(_ cache: OverseasSearchCache) {
+        guard let url = overseasCacheURL, let data = try? JSONEncoder().encode(cache) else { return }
+        try? data.write(to: url, options: .atomic)
+    }
+
     private func selectCoordinate(
         _ coordinate: CLLocationCoordinate2D,
         fallbackName: String,
@@ -380,6 +510,23 @@ final class MapViewModel: NSObject, MKLocalSearchCompleterDelegate {
         }
     }
 
+    func dismissError() {
+        errorMessage = nil
+    }
+
+    // Messages fade after a few seconds, longer ones staying long enough to
+    // read, so a failed search does not leave a banner over the map.
+    private func scheduleErrorDismissal() {
+        errorDismissalTask?.cancel()
+        guard let message = errorMessage else { return }
+        let seconds = min(8, max(4, Double(message.count) * 0.12))
+        errorDismissalTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(seconds))
+            guard !Task.isCancelled, let self, self.errorMessage == message else { return }
+            self.errorMessage = nil
+        }
+    }
+
     func clearSearch() {
         resetSearchField()
         errorMessage = nil
@@ -393,6 +540,7 @@ final class MapViewModel: NSObject, MKLocalSearchCompleterDelegate {
     private func resetSearchField() {
         searchQuery = ""
         searchSuggestions = []
+        overseasResults = []
         searchCompleter.queryFragment = ""
     }
 

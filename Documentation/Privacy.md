@@ -19,6 +19,8 @@ Pairing records are stored in the device-only Keychain. App preferences and save
 
 The Simulate Favourite shortcut makes favourite names and place descriptions available to the Shortcuts app and Siri on this iPhone so a favourite can be chosen. Coordinates are not provided to them, and the shortcuts add no network request or statistics event.
 
+Overseas place search is optional and only appears in builds that include a Geoapify API key. When you switch the search box to **Overseas** and tap Search, the search text is sent to [Geoapify](https://www.geoapify.com/privacy-policy/) over HTTPS to find candidates; nothing is sent while typing, in domestic mode, or for pasted coordinates. Geoapify can observe connection metadata such as the requesting IP address. The request contains no coordinates, pairing data, device name or diagnostics. Recent results are cached on the iPhone for seven days and a daily search count is stored locally; neither is uploaded or included in usage statistics.
+
 When the app opens, it requests the latest public release metadata from GitHub to check for an update. The request does not include location, pairing or diagnostic data. As with any network request, GitHub can observe connection metadata such as the requesting IP address.
 
 ## Optional background location indicator preference

@@ -780,3 +780,21 @@
 "Siri" = "Siri";
 "Say “Simulate a favourite with %@” or “Restore my real location with %@”." = "可以说“用%@模拟收藏地点”或“用%@恢复真实位置”。";
 "Opens WrapPin's page in the Shortcuts app, where both shortcuts can be run or added to an automation." = "打开“快捷指令”App 中的 WrapPin 页面，可在那里运行这两条快捷指令或把它们加入自动化。";
+
+/* Overseas search */
+"Search overseas places or coordinates" = "搜索海外地点或输入坐标";
+"Overseas" = "海外";
+"Domestic" = "国内";
+"Overseas search" = "海外搜索";
+"Switches between domestic and overseas place search" = "在国内和海外地点搜索之间切换";
+"This iPhone has reached today's overseas search limit. You can paste coordinates instead." = "这台 iPhone 今天的海外搜索次数已用完，可以改为直接粘贴坐标。";
+"Overseas search could not be reached. In mainland China it may need a proxy; you can also paste coordinates instead." = "无法连接海外搜索服务。在中国大陆可能需要开启代理才能使用，也可以直接粘贴坐标。";
+"Overseas search is unavailable right now. You can paste coordinates instead." = "海外搜索暂时不可用，可以改为直接粘贴坐标。";
+"No overseas place found. Try the local or English name, or paste coordinates." = "没有找到海外地点。可以试试当地语言或英文名称，或直接粘贴坐标。";
+"House number" = "门牌";
+"Street" = "街道";
+"City" = "城市";
+"Region" = "地区";
+"Country" = "国家";
+"Approximate" = "大致位置";
+"Dismisses this message" = "关闭此提示";
