@@ -64,6 +64,8 @@ typedef struct {
     int32_t error_stage;
     // Non-zero when the device tunnel was not reachable yet and discovery may be retried.
     int32_t error_is_recoverable;
+    // The underlying error kind and code, for copied diagnostics only; may be NULL.
+    char *error_detail;
 } WPLocationResult;
 
 WPRemotePairingSession *wp_remote_pairing_session_create(void);

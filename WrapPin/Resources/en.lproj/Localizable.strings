@@ -119,7 +119,7 @@
 "A device announcement is visible, but it does not match the paired iPhone. Restart the selected tunnel and try again." = "A device announcement is visible, but it does not match the paired iPhone. Restart the selected tunnel and try again.";
 "This iPhone was not reachable through the device tunnel. If you are using an external tunnel app on mobile data, connect to Wi-Fi and run the check again." = "This iPhone was not reachable through the device tunnel. If you are using an external tunnel app on mobile data, connect to Wi-Fi and run the check again.";
 "This iPhone was not reachable through the device tunnel. Check that a compatible tunnel is connected. On mobile data, switch data off briefly and run the check again." = "This iPhone was not reachable through the device tunnel. Check that a compatible tunnel is connected. On mobile data, switch data off briefly and run the check again.";
-"The pairing record is valid and this iPhone is reachable through the device tunnel." = "The pairing record is valid and this iPhone is reachable through the device tunnel.";
+"The pairing record matches this iPhone and it is reachable through the device tunnel. The iPhone verifies the pairing itself when a location session starts." = "The pairing record matches this iPhone and it is reachable through the device tunnel. The iPhone verifies the pairing itself when a location session starts.";
 "Simulation coordinate mode" = "Simulation coordinate mode";
 "GCJ-02 correction" = "GCJ-02 correction";
 "WGS84 unchanged" = "WGS84 unchanged";

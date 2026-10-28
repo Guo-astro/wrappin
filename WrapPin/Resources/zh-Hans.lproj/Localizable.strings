@@ -541,7 +541,7 @@
 "A device announcement is visible, but it does not match the paired iPhone. Restart the selected tunnel and try again." = "已发现设备广播，但与配对的 iPhone 不匹配。请重启所选隧道后重试。";
 "This iPhone was not reachable through the device tunnel. Check that a compatible tunnel is connected. On mobile data, switch data off briefly and run the check again." = "无法通过设备隧道连接这台 iPhone。请确认兼容隧道已连接；若使用蜂窝网络，请暂时关闭蜂窝数据后再次检测。";
 "This iPhone was not reachable through the device tunnel. If you are using an external tunnel app on mobile data, connect to Wi-Fi and run the check again." = "无法通过设备隧道连接这台 iPhone。如果正通过蜂窝网络使用外部隧道应用，请连接 Wi-Fi 后重新检测。";
-"The pairing record is valid and this iPhone is reachable through the device tunnel." = "配对记录有效，且可通过设备隧道连接这台 iPhone。";
+"The pairing record matches this iPhone and it is reachable through the device tunnel. The iPhone verifies the pairing itself when a location session starts." = "配对记录与这台 iPhone 匹配，且可通过设备隧道连接。配对本身会在开始定位时由 iPhone 校验。";
 
 /* Status and map errors */
 "Dropped Pin" = "地图选点";
